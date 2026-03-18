@@ -21,6 +21,8 @@ import {
 } from 'firebase/auth';
 import {
   addDoc,
+  arrayRemove,
+  arrayUnion,
   collection,
   doc,
   getDoc,
@@ -32,12 +34,19 @@ import {
   setDoc
 } from 'firebase/firestore';
 import {
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  sendSignInLinkToEmail
+} from 'firebase/auth';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import {
   cancelTaskReminder,
   requestNotificationPermission,
   scheduleTaskReminder,
   setupNotifications
 } from '../services/notifications';
-import { auth, db } from '../services/firebase';
+import { generateAiChatReply } from '../services/aiCoach';
+import { auth, db, storage } from '../services/firebase';
 
 const SuccessContext = createContext(null);
 
@@ -50,6 +59,9 @@ const initialState = {
     age: '',
     city: '',
     profession: '',
+    photoURL: '',
+    followersCount: 0,
+    followingCount: 0,
     ready: false
   },
   tasks: [],
@@ -289,6 +301,13 @@ export const SuccessProvider = ({ children }) => {
           uid: user.uid,
           email: user.email || '',
           displayName: user.displayName || '',
+          mission: '',
+          age: '',
+          city: '',
+          profession: '',
+          photoURL: user.photoURL || '',
+          followers: [],
+          following: [],
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
@@ -303,6 +322,9 @@ export const SuccessProvider = ({ children }) => {
           age: latest?.age || '',
           city: latest?.city || '',
           profession: latest?.profession || '',
+          photoURL: latest?.photoURL || user.photoURL || '',
+          followersCount: Array.isArray(latest?.followers) ? latest.followers.length : 0,
+          followingCount: Array.isArray(latest?.following) ? latest.following.length : 0,
           ready: Boolean(latest?.displayName || user.displayName)
         }
       });
@@ -493,6 +515,7 @@ export const SuccessProvider = ({ children }) => {
             age: payload.age || '',
             city: payload.city || '',
             profession: payload.profession || '',
+            photoURL: payload.photoURL || authUser.photoURL || '',
             updatedAt: serverTimestamp()
           },
           { merge: true }
@@ -590,6 +613,13 @@ export const SuccessProvider = ({ children }) => {
         uid: credential.user.uid,
         email: credential.user.email || email.trim(),
         displayName: name?.trim() || credential.user.displayName || '',
+        mission: '',
+        age: '',
+        city: '',
+        profession: '',
+        photoURL: credential.user.photoURL || '',
+        followers: [],
+        following: [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       },
@@ -607,14 +637,187 @@ export const SuccessProvider = ({ children }) => {
     await signOut(auth);
   }, []);
 
-  const sendGlobalMessage = useCallback(
+  const sendVerification = useCallback(async () => {
+    if (!auth.currentUser) return false;
+    await sendEmailVerification(auth.currentUser);
+    return true;
+  }, []);
+
+  const sendPasswordReset = useCallback(async (email) => {
+    const cleanEmail = String(email || '').trim();
+    if (!cleanEmail) return false;
+    await sendPasswordResetEmail(auth, cleanEmail);
+    return true;
+  }, []);
+
+  const sendMagicLink = useCallback(async (email) => {
+    const cleanEmail = String(email || '').trim();
+    if (!cleanEmail) return false;
+    await sendSignInLinkToEmail(auth, cleanEmail, {
+      url: 'https://upcore-59369.firebaseapp.com/__/auth/action',
+      handleCodeInApp: true
+    });
+    return true;
+  }, []);
+
+  const uploadProfileAvatar = useCallback(
+    async (uri) => {
+      if (!authUser?.uid || !uri) return null;
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const avatarRef = ref(storage, `avatars/${authUser.uid}.jpg`);
+      await uploadBytes(avatarRef, blob);
+      const photoURL = await getDownloadURL(avatarRef);
+      await setDoc(
+        doc(db, 'users', authUser.uid),
+        {
+          photoURL,
+          updatedAt: serverTimestamp()
+        },
+        { merge: true }
+      );
+      dispatch({
+        type: actionTypes.SET_PROFILE,
+        payload: { photoURL }
+      });
+      return photoURL;
+    },
+    [authUser?.uid]
+  );
+
+  const subscribePublicUsers = useCallback((listener) => {
+    const usersQuery = query(collection(db, 'users'), limit(200));
+    return onSnapshot(usersQuery, (snapshot) => {
+      const users = snapshot.docs.map((entry) => ({
+        id: entry.id,
+        ...entry.data(),
+        followersCount: Array.isArray(entry.data()?.followers) ? entry.data().followers.length : 0,
+        followingCount: Array.isArray(entry.data()?.following) ? entry.data().following.length : 0
+      }));
+      listener(users);
+    });
+  }, []);
+
+  const followUser = useCallback(
+    async (targetUid) => {
+      if (!authUser?.uid || !targetUid || targetUid === authUser.uid) return false;
+      await setDoc(doc(db, 'users', authUser.uid), {
+        following: arrayUnion(targetUid),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      await setDoc(doc(db, 'users', targetUid), {
+        followers: arrayUnion(authUser.uid),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      return true;
+    },
+    [authUser?.uid]
+  );
+
+  const unfollowUser = useCallback(
+    async (targetUid) => {
+      if (!authUser?.uid || !targetUid || targetUid === authUser.uid) return false;
+      await setDoc(doc(db, 'users', authUser.uid), {
+        following: arrayRemove(targetUid),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      await setDoc(doc(db, 'users', targetUid), {
+        followers: arrayRemove(authUser.uid),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      return true;
+    },
+    [authUser?.uid]
+  );
+
+  const subscribeUserById = useCallback((uid, listener) => {
+    if (!uid) return () => {};
+    return onSnapshot(doc(db, 'users', uid), (snapshot) => {
+      if (!snapshot.exists()) {
+        listener(null);
+        return;
+      }
+      const data = snapshot.data();
+      listener({
+        uid,
+        ...data,
+        followersCount: Array.isArray(data.followers) ? data.followers.length : 0,
+        followingCount: Array.isArray(data.following) ? data.following.length : 0,
+        isFollowedByMe: Array.isArray(data.followers) && authUser?.uid
+          ? data.followers.includes(authUser.uid)
+          : false
+      });
+    });
+  }, [authUser?.uid]);
+
+  const subscribeAiMessages = useCallback(
+    (listener) => {
+      if (!authUser?.uid) return () => {};
+      const messagesQuery = query(
+        collection(db, 'aiChats', authUser.uid, 'messages'),
+        orderBy('createdAt', 'asc'),
+        limit(300)
+      );
+      return onSnapshot(messagesQuery, (snapshot) => {
+        const data = snapshot.docs.map((entry) => ({
+          id: entry.id,
+          ...entry.data()
+        }));
+        listener(data);
+      });
+    },
+    [authUser?.uid]
+  );
+
+  const sendAiMessage = useCallback(
     async (text) => {
+      const cleanText = String(text || '').trim();
+      if (!authUser?.uid || !cleanText) return false;
+
+      const userPayload = {
+        role: 'user',
+        text: cleanText,
+        createdAt: serverTimestamp()
+      };
+      await addDoc(collection(db, 'aiChats', authUser.uid, 'messages'), userPayload);
+
+      const historySnap = await getDoc(doc(db, 'users', authUser.uid));
+      const profileFromCloud = historySnap.exists() ? historySnap.data() : {};
+      const aiText = await generateAiChatReply({
+        language: state.settings.language,
+        profile: {
+          name: profileFromCloud.displayName || state.profile.name,
+          mission: profileFromCloud.mission || state.profile.mission
+        },
+        metrics,
+        conversation: [{ role: 'user', text: cleanText }],
+        userMessage: cleanText
+      });
+      await addDoc(collection(db, 'aiChats', authUser.uid, 'messages'), {
+        role: 'assistant',
+        text: aiText || 'Keep going. You can do it.',
+        createdAt: serverTimestamp()
+      });
+      return true;
+    },
+    [authUser?.uid, metrics, state.profile.mission, state.profile.name, state.settings.language]
+  );
+
+  const sendGlobalMessage = useCallback(
+    async (text, replyTo = null) => {
       const cleanText = String(text || '').trim();
       if (!authUser?.uid || !cleanText) return false;
       await addDoc(collection(db, 'globalMessages'), {
         text: cleanText,
         userId: authUser.uid,
         userName: authUser.displayName || state.profile.name || authUser.email || 'User',
+        replyTo: replyTo
+          ? {
+              id: replyTo.id || '',
+              text: String(replyTo.text || '').slice(0, 80),
+              userName: replyTo.userName || 'User'
+            }
+          : null,
         createdAt: serverTimestamp()
       });
       return true;
@@ -652,7 +855,7 @@ export const SuccessProvider = ({ children }) => {
   );
 
   const sendDirectMessage = useCallback(
-    async ({ peerId, text }) => {
+    async ({ peerId, text, replyTo = null }) => {
       const cleanText = String(text || '').trim();
       if (!authUser?.uid || !peerId || !cleanText) return false;
       const roomId = createRoomId(authUser.uid, peerId);
@@ -660,6 +863,13 @@ export const SuccessProvider = ({ children }) => {
         text: cleanText,
         userId: authUser.uid,
         userName: authUser.displayName || state.profile.name || authUser.email || 'User',
+        replyTo: replyTo
+          ? {
+              id: replyTo.id || '',
+              text: String(replyTo.text || '').slice(0, 80),
+              userName: replyTo.userName || 'User'
+            }
+          : null,
         createdAt: serverTimestamp()
       });
       return true;
@@ -731,7 +941,17 @@ export const SuccessProvider = ({ children }) => {
       subscribeGlobalMessages,
       subscribeUsers,
       sendDirectMessage,
-      subscribeDirectMessages
+      subscribeDirectMessages,
+      sendVerification,
+      sendPasswordReset,
+      sendMagicLink,
+      uploadProfileAvatar,
+      subscribePublicUsers,
+      followUser,
+      unfollowUser,
+      subscribeUserById,
+      subscribeAiMessages,
+      sendAiMessage
     }),
     [
       addGoal,
@@ -746,7 +966,11 @@ export const SuccessProvider = ({ children }) => {
       setDailyTaskTarget,
       setProfile,
       sendDirectMessage,
+      sendMagicLink,
       sendGlobalMessage,
+      sendPasswordReset,
+      sendVerification,
+      sendAiMessage,
       signInWithEmail,
       signOutUser,
       signUpWithEmail,
@@ -757,14 +981,20 @@ export const SuccessProvider = ({ children }) => {
       state.settings,
       state.tasks,
       state.trackedApps,
+      subscribeAiMessages,
       stopTrackedApp,
       subscribeDirectMessages,
       subscribeGlobalMessages,
+      subscribePublicUsers,
+      subscribeUserById,
       subscribeUsers,
       t,
       toggleTask,
+      unfollowUser,
+      uploadProfileAvatar,
       addTrackedApp,
       clearCompletedTasks,
+      followUser,
       updateGoal,
       updateSettings
     ]

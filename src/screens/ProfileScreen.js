@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Image,
   View,
   Text,
   StyleSheet,
@@ -13,7 +14,7 @@ import { useSuccess } from '../context/SuccessContext';
 import StatCard from '../components/StatCard';
 
 const ProfileScreen = ({ navigation }) => {
-  const { profile, metrics, updateSettings, settings, signOutUser, palette, t } = useSuccess();
+  const { profile, metrics, updateSettings, settings, signOutUser, sendVerification, palette, t } = useSuccess();
 
   return (
     <KeyboardAvoidingView
@@ -27,6 +28,15 @@ const ProfileScreen = ({ navigation }) => {
       >
       <View style={[styles.profileCard, { backgroundColor: palette.card, borderColor: palette.border }]}>
         <View style={styles.profileHeader}>
+          {profile.photoURL ? (
+            <Image source={{ uri: profile.photoURL }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+              <Text style={{ color: palette.subText, fontWeight: '800' }}>
+                {(profile.name || 'U').slice(0, 1).toUpperCase()}
+              </Text>
+            </View>
+          )}
           <View style={{ flex: 1 }}>
             <Text style={[styles.name, { color: palette.text }]}>{profile.name || t('profile')}</Text>
             <Text style={[styles.mission, { color: palette.subText }]}>
@@ -51,6 +61,9 @@ const ProfileScreen = ({ navigation }) => {
         <Text style={[styles.infoText, { color: palette.subText }]}>
           {t('profession')}: {profile.profession || '-'}
         </Text>
+        <Text style={[styles.infoText, { color: palette.subText }]}>
+          {t('followers')}: {profile.followersCount || 0} | {t('following')}: {profile.followingCount || 0}
+        </Text>
       </View>
 
       <View style={styles.cardRow}>
@@ -60,6 +73,27 @@ const ProfileScreen = ({ navigation }) => {
 
       <View style={[styles.form, { backgroundColor: palette.card, borderColor: palette.border }]}>
         <Text style={[styles.title, { color: palette.text }]}>{t('moreOptions')}</Text>
+        <Pressable
+          style={[styles.switchRow, { borderColor: palette.border }]}
+          onPress={() => navigation.navigate('AiChat')}
+        >
+          <Text style={[styles.switchLabel, { color: palette.text }]}>{t('aiChat')}</Text>
+          <Text style={[styles.switchValue, { color: palette.primary }]}>{'>'}</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.switchRow, { borderColor: palette.border }]}
+          onPress={() => navigation.navigate('Community')}
+        >
+          <Text style={[styles.switchLabel, { color: palette.text }]}>{t('community')}</Text>
+          <Text style={[styles.switchValue, { color: palette.primary }]}>{'>'}</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.switchRow, { borderColor: palette.border }]}
+          onPress={sendVerification}
+        >
+          <Text style={[styles.switchLabel, { color: palette.text }]}>{t('verifyAccount')}</Text>
+          <Text style={[styles.switchValue, { color: palette.success }]}>✓</Text>
+        </Pressable>
         <Pressable
           style={[styles.switchRow, { borderColor: palette.border }]}
           onPress={() => updateSettings({ compactMode: !settings.compactMode })}
@@ -98,6 +132,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   editIconBtn: {
     width: 34,

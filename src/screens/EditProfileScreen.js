@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useSuccess } from '../context/SuccessContext';
 
 const EditProfileScreen = ({ navigation }) => {
-  const { profile, setProfile, palette, t } = useSuccess();
+  const { profile, setProfile, uploadProfileAvatar, palette, t } = useSuccess();
   const [name, setName] = useState(profile.name || '');
   const [mission, setMission] = useState(profile.mission || '');
   const [age, setAge] = useState(profile.age || '');
@@ -30,6 +41,35 @@ const EditProfileScreen = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.border }]}>
           <Text style={[styles.title, { color: palette.text }]}>{t('profileInfo')}</Text>
+          <View style={styles.avatarWrap}>
+            {profile.photoURL ? (
+              <Image source={{ uri: profile.photoURL }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                <Text style={{ color: palette.subText, fontWeight: '800' }}>
+                  {(profile.name || 'U').slice(0, 1).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <Pressable
+              style={[styles.photoBtn, { borderColor: palette.border }]}
+              onPress={async () => {
+                const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (!permission.granted) return;
+                const picked = await ImagePicker.launchImageLibraryAsync({
+                  allowsEditing: true,
+                  aspect: [1, 1],
+                  quality: 0.7
+                });
+                if (picked.canceled) return;
+                const uri = picked.assets?.[0]?.uri;
+                if (!uri) return;
+                await uploadProfileAvatar(uri);
+              }}
+            >
+              <Text style={{ color: palette.primary, fontWeight: '700' }}>{t('uploadPhoto')}</Text>
+            </Pressable>
+          </View>
           <TextInput
             value={name}
             onChangeText={setName}
@@ -85,6 +125,24 @@ const styles = StyleSheet.create({
     gap: 10
   },
   title: { fontSize: 18, fontWeight: '800' },
+  avatarWrap: {
+    alignItems: 'center',
+    gap: 8
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  photoBtn: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
   input: {
     borderWidth: 1,
     borderRadius: 10,

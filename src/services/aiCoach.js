@@ -72,3 +72,41 @@ Keep it practical and specific.
   const response = await model.generateContent(prompt);
   return response?.response?.text?.() || '';
 };
+
+export const generateAiChatReply = async ({
+  language,
+  profile,
+  metrics,
+  conversation,
+  userMessage
+}) => {
+  const lang = language || 'en';
+  const history = (conversation || [])
+    .slice(-8)
+    .map((entry) => `${entry.role === 'assistant' ? 'Coach' : 'User'}: ${entry.text}`)
+    .join('\n');
+
+  const prompt = `
+You are Upcore AI coach.
+Language: ${lang}.
+User name: ${profile?.name || 'User'}.
+Mission: ${profile?.mission || 'not set'}.
+Streak: ${metrics?.streak || 0}.
+Completion rate: ${metrics?.completionRate || 0}%.
+Productivity score: ${metrics?.productivityScore || 0}.
+
+Conversation history:
+${history || 'No history'}
+
+Current user message: ${userMessage}
+
+Reply with:
+- short friendly coaching answer,
+- one concrete next step,
+- optional warning if user is overloading.
+Max 120 words.
+`.trim();
+
+  const response = await model.generateContent(prompt);
+  return response?.response?.text?.() || '';
+};

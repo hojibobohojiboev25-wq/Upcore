@@ -16,6 +16,7 @@ const DirectChatScreen = ({ route, navigation }) => {
   const { authUser, subscribeDirectMessages, sendDirectMessage, palette, t } = useSuccess();
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
+  const [replyTo, setReplyTo] = useState(null);
 
   useLayoutEffect(() => {
     navigation.setOptions({ title: peerName || t('chat') });
@@ -27,8 +28,11 @@ const DirectChatScreen = ({ route, navigation }) => {
   }, [peerId, subscribeDirectMessages]);
 
   const onSend = async () => {
-    const ok = await sendDirectMessage({ peerId, text });
-    if (ok) setText('');
+    const ok = await sendDirectMessage({ peerId, text, replyTo });
+    if (ok) {
+      setText('');
+      setReplyTo(null);
+    }
   };
 
   return (
@@ -40,18 +44,42 @@ const DirectChatScreen = ({ route, navigation }) => {
         data={messages}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => {
           const mine = item.userId === authUser?.uid;
           return (
-            <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubblePeer, { backgroundColor: mine ? palette.primary : palette.card, borderColor: palette.border }]}>
+            <Pressable
+              onLongPress={() => setReplyTo(item)}
+              style={[styles.bubble, mine ? styles.bubbleMine : styles.bubblePeer, { backgroundColor: mine ? palette.primary : palette.card, borderColor: palette.border }]}
+            >
               <Text style={[styles.author, { color: mine ? '#EAF0FF' : palette.subText }]}>
                 {item.userName || 'User'}
               </Text>
+              {item.replyTo?.text ? (
+                <View style={[styles.replyPreview, { borderColor: mine ? 'rgba(255,255,255,0.3)' : palette.border }]}>
+                  <Text style={[styles.replyMeta, { color: mine ? '#EAF0FF' : palette.subText }]}>
+                    {item.replyTo.userName}
+                  </Text>
+                  <Text style={{ color: mine ? '#EAF0FF' : palette.subText }} numberOfLines={1}>
+                    {item.replyTo.text}
+                  </Text>
+                </View>
+              ) : null}
               <Text style={{ color: mine ? '#fff' : palette.text }}>{item.text}</Text>
-            </View>
+            </Pressable>
           );
         }}
       />
+      {replyTo ? (
+        <View style={[styles.replyBanner, { borderTopColor: palette.border, backgroundColor: palette.card }]}>
+          <Text style={[styles.replyMeta, { color: palette.subText }]} numberOfLines={1}>
+            Reply to {replyTo.userName}: {replyTo.text}
+          </Text>
+          <Pressable onPress={() => setReplyTo(null)}>
+            <Text style={{ color: palette.danger, fontWeight: '700' }}>X</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <View style={[styles.inputRow, { borderTopColor: palette.border, backgroundColor: palette.surface }]}>
         <TextInput
           value={text}
@@ -87,6 +115,23 @@ const styles = StyleSheet.create({
   author: {
     fontSize: 11,
     fontWeight: '700'
+  },
+  replyPreview: {
+    borderLeftWidth: 2,
+    paddingLeft: 6,
+    marginBottom: 2
+  },
+  replyMeta: {
+    fontSize: 11,
+    fontWeight: '700'
+  },
+  replyBanner: {
+    borderTopWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
   inputRow: {
     borderTopWidth: 1,

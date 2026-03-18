@@ -24,6 +24,10 @@ import AuthScreen from './src/screens/AuthScreen';
 import GlobalChatScreen from './src/screens/GlobalChatScreen';
 import ChatUsersScreen from './src/screens/ChatUsersScreen';
 import DirectChatScreen from './src/screens/DirectChatScreen';
+import AiChatScreen from './src/screens/AiChatScreen';
+import CommunityScreen from './src/screens/CommunityScreen';
+import UserProfileScreen from './src/screens/UserProfileScreen';
+import AppErrorBoundary from './src/components/AppErrorBoundary';
 import { useSuccess } from './src/context/SuccessContext';
 
 const Tab = createBottomTabNavigator();
@@ -191,6 +195,33 @@ const AppContent = () => {
             headerTintColor: palette.text
           }}
         />
+        <Stack.Screen
+          name="AiChat"
+          component={AiChatScreen}
+          options={{
+            title: t('aiChat'),
+            headerStyle: { backgroundColor: palette.background },
+            headerTintColor: palette.text
+          }}
+        />
+        <Stack.Screen
+          name="Community"
+          component={CommunityScreen}
+          options={{
+            title: t('community'),
+            headerStyle: { backgroundColor: palette.background },
+            headerTintColor: palette.text
+          }}
+        />
+        <Stack.Screen
+          name="UserProfile"
+          component={UserProfileScreen}
+          options={{
+            title: t('publicProfile'),
+            headerStyle: { backgroundColor: palette.background },
+            headerTintColor: palette.text
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -200,7 +231,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SuccessProvider>
-        <AppContent />
+        <AppErrorBoundary>
+          <AppContent />
+        </AppErrorBoundary>
       </SuccessProvider>
     </SafeAreaProvider>
   );

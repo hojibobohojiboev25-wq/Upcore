@@ -13,7 +13,7 @@ import {
 import { useSuccess } from '../context/SuccessContext';
 
 const AuthScreen = () => {
-  const { signInWithEmail, signUpWithEmail, palette, t } = useSuccess();
+  const { signInWithEmail, signUpWithEmail, sendPasswordReset, sendMagicLink, palette, t } = useSuccess();
   const [mode, setMode] = useState('signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -114,6 +114,33 @@ const AuthScreen = () => {
               </Text>
             )}
           </Pressable>
+
+          <View style={styles.linksRow}>
+            <Pressable
+              onPress={async () => {
+                try {
+                  await sendPasswordReset(email);
+                  setError('Reset link sent to your email.');
+                } catch (authError) {
+                  setError(authError?.message || 'Reset error');
+                }
+              }}
+            >
+              <Text style={[styles.linkText, { color: palette.primary }]}>{t('forgotPassword') || 'Forgot password?'}</Text>
+            </Pressable>
+            <Pressable
+              onPress={async () => {
+                try {
+                  await sendMagicLink(email);
+                  setError('Magic link sent to your email.');
+                } catch (authError) {
+                  setError(authError?.message || 'Magic link error');
+                }
+              }}
+            >
+              <Text style={[styles.linkText, { color: palette.primary }]}>{t('magicLink') || 'Login link'}</Text>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -169,6 +196,15 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     color: '#fff',
     fontWeight: '800'
+  },
+  linksRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 2
+  },
+  linkText: {
+    fontSize: 12,
+    fontWeight: '700'
   }
 });
 
