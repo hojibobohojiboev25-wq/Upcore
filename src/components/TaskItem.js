@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { theme } from '../constants/theme';
 import { formatDate } from '../utils/date';
 
 const priorityMap = {
@@ -9,29 +8,42 @@ const priorityMap = {
   high: { label: 'Высокий', color: '#FF5C5C' }
 };
 
-const TaskItem = ({ item, onToggle, onDelete }) => {
+const TaskItem = ({ item, onToggle, onDelete, palette, t }) => {
   const priority = priorityMap[item.priority] || priorityMap.medium;
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.border }]}>
       <View style={styles.row}>
         <Pressable
           onPress={onToggle}
-          style={[styles.checkbox, item.completed && styles.checkboxDone]}
+          style={[
+            styles.checkbox,
+            { borderColor: palette.border },
+            item.completed && [styles.checkboxDone, { backgroundColor: palette.success, borderColor: palette.success }]
+          ]}
         >
           <Text style={styles.checkboxText}>{item.completed ? '✓' : ''}</Text>
         </Pressable>
 
         <View style={styles.main}>
-          <Text style={[styles.title, item.completed && styles.completed]}>{item.title}</Text>
-          {!!item.note && <Text style={styles.note}>{item.note}</Text>}
+          <Text style={[styles.title, { color: palette.text }, item.completed && [styles.completed, { color: palette.subText }]]}>
+            {item.title}
+          </Text>
+          {!!item.note && <Text style={[styles.note, { color: palette.subText }]}>{item.note}</Text>}
+          {!!item.dueAt && (
+            <Text style={[styles.note, { color: palette.warning }]}>
+              {t('dueDate')}: {formatDate(item.dueAt)} {new Date(item.dueAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+          )}
           <View style={styles.metaRow}>
             <Text style={[styles.priority, { color: priority.color }]}>{priority.label}</Text>
-            <Text style={styles.date}>Создано: {formatDate(item.createdAt)}</Text>
+            <Text style={[styles.date, { color: palette.subText }]}>
+              {formatDate(item.createdAt)}
+            </Text>
           </View>
         </View>
 
-        <Pressable onPress={onDelete} style={styles.deleteButton}>
-          <Text style={styles.deleteText}>Удалить</Text>
+        <Pressable onPress={onDelete} style={[styles.deleteButton, { backgroundColor: 'rgba(255, 92, 92, 0.15)' }]}>
+          <Text style={[styles.deleteText, { color: palette.danger }]}>{t('delete')}</Text>
         </Pressable>
       </View>
     </View>
@@ -40,8 +52,6 @@ const TaskItem = ({ item, onToggle, onDelete }) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.card,
-    borderColor: theme.colors.border,
     borderWidth: 1,
     borderRadius: 14,
     padding: 12
@@ -62,8 +72,8 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   checkboxDone: {
-    backgroundColor: theme.colors.success,
-    borderColor: theme.colors.success
+    backgroundColor: '#23C16B',
+    borderColor: '#23C16B'
   },
   checkboxText: {
     color: '#fff',
@@ -74,16 +84,13 @@ const styles = StyleSheet.create({
     gap: 4
   },
   title: {
-    color: theme.colors.text,
     fontSize: 16,
     fontWeight: '700'
   },
   completed: {
-    textDecorationLine: 'line-through',
-    color: theme.colors.subText
+    textDecorationLine: 'line-through'
   },
   note: {
-    color: theme.colors.subText,
     fontSize: 13
   },
   metaRow: {
@@ -96,17 +103,14 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   date: {
-    color: theme.colors.subText,
     fontSize: 12
   },
   deleteButton: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: 'rgba(255, 92, 92, 0.15)',
     borderRadius: 8
   },
   deleteText: {
-    color: theme.colors.danger,
     fontWeight: '700',
     fontSize: 12
   }

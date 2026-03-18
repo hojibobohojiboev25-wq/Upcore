@@ -1,11 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSuccess } from '../context/SuccessContext';
-import { theme } from '../constants/theme';
 import ProgressBar from '../components/ProgressBar';
 
 const AnalyticsScreen = () => {
-  const { tasks, goals, metrics } = useSuccess();
+  const { tasks, goals, metrics, palette, t } = useSuccess();
   const highPriorityDone = tasks.filter((t) => t.priority === 'high' && t.completed).length;
   const totalHighPriority = tasks.filter((t) => t.priority === 'high').length;
   const goalsOverall = goals.length
@@ -36,50 +35,53 @@ const AnalyticsScreen = () => {
   ];
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
-      <View style={styles.panel}>
-        <Text style={styles.panelTitle}>KPI продуктивности</Text>
+    <ScrollView style={[styles.screen, { backgroundColor: palette.background }]} contentContainerStyle={styles.container}>
+      <View style={[styles.panel, { backgroundColor: palette.card, borderColor: palette.border }]}>
+        <Text style={[styles.panelTitle, { color: palette.text }]}>{t('kpi')}</Text>
 
         <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Выполнение задач</Text>
-          <Text style={styles.metricValue}>{metrics.completionRate}%</Text>
-          <ProgressBar value={metrics.completionRate} max={100} />
+          <Text style={[styles.metricLabel, { color: palette.subText }]}>{t('completedTasks')}</Text>
+          <Text style={[styles.metricValue, { color: palette.text }]}>{metrics.completionRate}%</Text>
+          <ProgressBar value={metrics.completionRate} max={100} color={palette.primary} trackColor={palette.border} />
         </View>
 
         <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Высокий приоритет</Text>
-          <Text style={styles.metricValue}>
+          <Text style={[styles.metricLabel, { color: palette.subText }]}>{t('priority')}</Text>
+          <Text style={[styles.metricValue, { color: palette.text }]}>
             {highPriorityDone}/{totalHighPriority || 0}
           </Text>
           <ProgressBar
             value={highPriorityDone}
             max={totalHighPriority || 1}
-            color={theme.colors.warning}
+            color={palette.warning}
+            trackColor={palette.border}
           />
         </View>
 
         <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Общий прогресс целей</Text>
-          <Text style={styles.metricValue}>{goalsOverall}%</Text>
-          <ProgressBar value={goalsOverall} max={100} color={theme.colors.success} />
+          <Text style={[styles.metricLabel, { color: palette.subText }]}>{t('goals')}</Text>
+          <Text style={[styles.metricValue, { color: palette.text }]}>{goalsOverall}%</Text>
+          <ProgressBar value={goalsOverall} max={100} color={palette.success} trackColor={palette.border} />
         </View>
       </View>
 
-      <View style={styles.panel}>
-        <Text style={styles.panelTitle}>Достижения</Text>
+      <View style={[styles.panel, { backgroundColor: palette.card, borderColor: palette.border }]}>
+        <Text style={[styles.panelTitle, { color: palette.text }]}>{t('achievements')}</Text>
         <View style={styles.achievementList}>
           {achievements.map((achievement) => (
             <View
               key={achievement.title}
               style={[
                 styles.achievementCard,
-                achievement.reached ? styles.achievementDone : styles.achievementPending
+                achievement.reached
+                  ? [styles.achievementDone, { borderColor: 'rgba(35, 193, 107, 0.4)' }]
+                  : [styles.achievementPending, { borderColor: palette.border, backgroundColor: palette.surface }]
               ]}
             >
-              <Text style={styles.achievementTitle}>
+              <Text style={[styles.achievementTitle, { color: palette.text }]}>
                 {achievement.reached ? '🏅' : '🔒'} {achievement.title}
               </Text>
-              <Text style={styles.achievementDesc}>{achievement.desc}</Text>
+              <Text style={[styles.achievementDesc, { color: palette.subText }]}>{achievement.desc}</Text>
             </View>
           ))}
         </View>
@@ -91,7 +93,7 @@ const AnalyticsScreen = () => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: theme.colors.background
+    backgroundColor: '#0B1220'
   },
   container: {
     padding: 16,
@@ -99,15 +101,12 @@ const styles = StyleSheet.create({
     paddingBottom: 40
   },
   panel: {
-    backgroundColor: theme.colors.card,
-    borderColor: theme.colors.border,
     borderWidth: 1,
     borderRadius: 14,
     padding: 14,
     gap: 12
   },
   panelTitle: {
-    color: theme.colors.text,
     fontWeight: '800',
     fontSize: 18
   },
@@ -115,11 +114,9 @@ const styles = StyleSheet.create({
     gap: 6
   },
   metricLabel: {
-    color: theme.colors.subText,
     fontWeight: '700'
   },
   metricValue: {
-    color: theme.colors.text,
     fontSize: 22,
     fontWeight: '800'
   },
@@ -133,20 +130,16 @@ const styles = StyleSheet.create({
     gap: 4
   },
   achievementDone: {
-    borderColor: 'rgba(35, 193, 107, 0.4)',
     backgroundColor: 'rgba(35, 193, 107, 0.12)'
   },
   achievementPending: {
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface
+    borderColor: '#253453',
+    backgroundColor: '#111A2E'
   },
   achievementTitle: {
-    color: theme.colors.text,
     fontWeight: '700'
   },
-  achievementDesc: {
-    color: theme.colors.subText
-  }
+  achievementDesc: {}
 });
 
 export default AnalyticsScreen;

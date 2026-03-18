@@ -7,14 +7,16 @@ import {
   TextInput,
   Pressable
 } from 'react-native';
-import { theme } from '../constants/theme';
 import { useSuccess } from '../context/SuccessContext';
 import TaskItem from '../components/TaskItem';
+import { parseDueAt } from '../utils/date';
 
 const TasksScreen = () => {
-  const { tasks, addTask, toggleTask, removeTask } = useSuccess();
+  const { tasks, addTask, toggleTask, removeTask, palette, t } = useSuccess();
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [dueTime, setDueTime] = useState('');
   const [priority, setPriority] = useState('medium');
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -44,91 +46,122 @@ const TasksScreen = () => {
     return result;
   }, [tasks, filter, search, sortBy]);
 
-  const onAdd = () => {
+  const onAdd = async () => {
     if (!title.trim()) return;
-    addTask({ title: title.trim(), note: note.trim(), priority });
+    const dueAt = parseDueAt({ dateInput: dueDate, timeInput: dueTime });
+    await addTask({ title: title.trim(), note: note.trim(), priority, dueAt });
     setTitle('');
     setNote('');
+    setDueDate('');
+    setDueTime('');
     setPriority('medium');
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
-      <View style={styles.form}>
-        <Text style={styles.sectionTitle}>Новая задача</Text>
+    <ScrollView style={[styles.screen, { backgroundColor: palette.background }]} contentContainerStyle={styles.container}>
+      <View style={[styles.form, { backgroundColor: palette.card, borderColor: palette.border }]}>
+        <Text style={[styles.sectionTitle, { color: palette.text }]}>{t('newTask')}</Text>
         <TextInput
           value={title}
           onChangeText={setTitle}
-          placeholder="Например: Прочитать 20 страниц книги"
-          placeholderTextColor={theme.colors.subText}
-          style={styles.input}
+          placeholder={t('taskTitlePlaceholder')}
+          placeholderTextColor={palette.subText}
+          style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
         />
         <TextInput
           value={note}
           onChangeText={setNote}
-          placeholder="Доп. заметка (опционально)"
-          placeholderTextColor={theme.colors.subText}
-          style={styles.input}
+          placeholder={t('taskNotePlaceholder')}
+          placeholderTextColor={palette.subText}
+          style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
         />
+        <View style={styles.row}>
+          <TextInput
+            value={dueDate}
+            onChangeText={setDueDate}
+            placeholder={t('taskDatePlaceholder')}
+            placeholderTextColor={palette.subText}
+            style={[styles.input, styles.halfInput, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
+          />
+          <TextInput
+            value={dueTime}
+            onChangeText={setDueTime}
+            placeholder={t('taskTimePlaceholder')}
+            placeholderTextColor={palette.subText}
+            style={[styles.input, styles.halfInput, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
+          />
+        </View>
 
         <View style={styles.row}>
           {['low', 'medium', 'high'].map((item) => (
             <Pressable
               key={item}
               onPress={() => setPriority(item)}
-              style={[styles.chip, priority === item && styles.chipActive]}
+              style={[
+                styles.chip,
+                { borderColor: palette.border, backgroundColor: palette.surface },
+                priority === item && [styles.chipActive, { borderColor: palette.primary }]
+              ]}
             >
-              <Text style={[styles.chipText, priority === item && styles.chipTextActive]}>
-                {item === 'low' ? 'Низкий' : item === 'medium' ? 'Средний' : 'Высокий'}
+              <Text style={[styles.chipText, { color: palette.subText }, priority === item && [styles.chipTextActive, { color: palette.primary }]]}>
+                {item === 'low' ? t('low') : item === 'medium' ? t('medium') : t('high')}
               </Text>
             </Pressable>
           ))}
         </View>
 
-        <Pressable onPress={onAdd} style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Добавить задачу</Text>
+        <Pressable onPress={onAdd} style={[styles.primaryButton, { backgroundColor: palette.primary }]}>
+          <Text style={styles.primaryButtonText}>{t('addTask')}</Text>
         </Pressable>
       </View>
 
       <View style={styles.filters}>
         {[
-          { key: 'all', label: 'Все' },
-          { key: 'active', label: 'Активные' },
-          { key: 'done', label: 'Готово' }
+          { key: 'all', label: t('all') },
+          { key: 'active', label: t('active') },
+          { key: 'done', label: t('done') }
         ].map((item) => (
           <Pressable
             key={item.key}
             onPress={() => setFilter(item.key)}
-            style={[styles.filterBtn, filter === item.key && styles.filterBtnActive]}
+            style={[
+              styles.filterBtn,
+              { borderColor: palette.border, backgroundColor: palette.surface },
+              filter === item.key && [styles.filterBtnActive, { borderColor: palette.primary }]
+            ]}
           >
-            <Text style={[styles.filterText, filter === item.key && styles.filterTextActive]}>
+            <Text style={[styles.filterText, { color: palette.subText }, filter === item.key && [styles.filterTextActive, { color: palette.primary }]]}>
               {item.label}
             </Text>
           </Pressable>
         ))}
       </View>
 
-      <View style={styles.form}>
-        <Text style={styles.sectionTitle}>Поиск и сортировка</Text>
+      <View style={[styles.form, { backgroundColor: palette.card, borderColor: palette.border }]}>
+        <Text style={[styles.sectionTitle, { color: palette.text }]}>{t('searchSort')}</Text>
         <TextInput
           value={search}
           onChangeText={setSearch}
-          placeholder="Найти задачу..."
-          placeholderTextColor={theme.colors.subText}
-          style={styles.input}
+          placeholder={t('searchTask')}
+          placeholderTextColor={palette.subText}
+          style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
         />
         <View style={styles.row}>
           {[
-            { key: 'newest', label: 'Новые' },
-            { key: 'priority', label: 'Приоритет' },
-            { key: 'status', label: 'Статус' }
+            { key: 'newest', label: t('newest') },
+            { key: 'priority', label: t('priority') },
+            { key: 'status', label: t('status') }
           ].map((item) => (
             <Pressable
               key={item.key}
               onPress={() => setSortBy(item.key)}
-              style={[styles.chip, sortBy === item.key && styles.chipActive]}
+              style={[
+                styles.chip,
+                { borderColor: palette.border, backgroundColor: palette.surface },
+                sortBy === item.key && [styles.chipActive, { borderColor: palette.primary }]
+              ]}
             >
-              <Text style={[styles.chipText, sortBy === item.key && styles.chipTextActive]}>
+              <Text style={[styles.chipText, { color: palette.subText }, sortBy === item.key && [styles.chipTextActive, { color: palette.primary }]]}>
                 {item.label}
               </Text>
             </Pressable>
@@ -138,7 +171,7 @@ const TasksScreen = () => {
 
       <View style={styles.list}>
         {filteredTasks.length === 0 ? (
-          <Text style={styles.empty}>Пока нет задач в этой категории.</Text>
+          <Text style={[styles.empty, { color: palette.subText }]}>{t('emptyTasks')}</Text>
         ) : (
           filteredTasks.map((task) => (
             <TaskItem
@@ -146,6 +179,8 @@ const TasksScreen = () => {
               item={task}
               onToggle={() => toggleTask(task.id)}
               onDelete={() => removeTask(task.id)}
+              palette={palette}
+              t={t}
             />
           ))
         )}
@@ -157,7 +192,7 @@ const TasksScreen = () => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: theme.colors.background
+    backgroundColor: '#0B1220'
   },
   container: {
     padding: 16,
@@ -165,26 +200,23 @@ const styles = StyleSheet.create({
     paddingBottom: 40
   },
   sectionTitle: {
-    color: theme.colors.text,
     fontWeight: '800',
     fontSize: 18
   },
   form: {
-    backgroundColor: theme.colors.card,
-    borderColor: theme.colors.border,
     borderWidth: 1,
     borderRadius: 14,
     padding: 12,
     gap: 10
   },
   input: {
-    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
     borderRadius: 10,
-    color: theme.colors.text,
     paddingHorizontal: 12,
     paddingVertical: 10
+  },
+  halfInput: {
+    flex: 1
   },
   row: {
     flexDirection: 'row',
@@ -193,25 +225,21 @@ const styles = StyleSheet.create({
   chip: {
     flex: 1,
     borderWidth: 1,
-    borderColor: theme.colors.border,
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
-    backgroundColor: theme.colors.surface
+    backgroundColor: '#111A2E'
   },
   chipActive: {
-    borderColor: theme.colors.primary,
     backgroundColor: 'rgba(79, 140, 255, 0.15)'
   },
   chipText: {
-    color: theme.colors.subText,
     fontWeight: '700'
   },
   chipTextActive: {
-    color: theme.colors.primary
+    color: '#4F8CFF'
   },
   primaryButton: {
-    backgroundColor: theme.colors.primary,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center'
@@ -228,27 +256,23 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     borderRadius: 10,
-    borderColor: theme.colors.border,
     borderWidth: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#111A2E',
     paddingVertical: 9
   },
   filterBtnActive: {
-    borderColor: theme.colors.primary,
     backgroundColor: 'rgba(79, 140, 255, 0.15)'
   },
   filterText: {
-    color: theme.colors.subText,
     fontWeight: '700'
   },
   filterTextActive: {
-    color: theme.colors.primary
+    color: '#4F8CFF'
   },
   list: {
     gap: 10
   },
   empty: {
-    color: theme.colors.subText,
     textAlign: 'center',
     marginTop: 16
   }

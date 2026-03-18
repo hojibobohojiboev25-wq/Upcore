@@ -29,3 +29,28 @@ export const getPastDays = (days) => {
     return date;
   });
 };
+
+export const parseDueAt = ({ dateInput, timeInput }) => {
+  const date = String(dateInput || '').trim();
+  const time = String(timeInput || '').trim();
+  if (!date || !time) return null;
+
+  const [year, month, day] = date.split('-').map(Number);
+  const [hours, minutes] = time.split(':').map(Number);
+  if (
+    [year, month, day, hours, minutes].some((item) => Number.isNaN(item)) ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31 ||
+    hours < 0 ||
+    hours > 23 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return null;
+  }
+
+  const dueDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+  return Number.isNaN(dueDate.getTime()) ? null : dueDate.toISOString();
+};

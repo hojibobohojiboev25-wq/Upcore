@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
 import { useSuccess } from '../context/SuccessContext';
-import { theme } from '../constants/theme';
 import StatCard from '../components/StatCard';
 import ProgressBar from '../components/ProgressBar';
 
 const DashboardScreen = () => {
-  const { metrics, goals, setDailyTaskTarget } = useSuccess();
+  const { metrics, goals, setDailyTaskTarget, palette, t } = useSuccess();
   const [targetDraft, setTargetDraft] = useState(String(metrics.dailyTaskTarget));
   useEffect(() => {
     setTargetDraft(String(metrics.dailyTaskTarget));
@@ -18,70 +17,74 @@ const DashboardScreen = () => {
     : 0;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Success Tracker Pro</Text>
-      <Text style={styles.subtitle}>Твой ежедневный центр продуктивности и роста</Text>
+    <ScrollView style={[styles.screen, { backgroundColor: palette.background }]} contentContainerStyle={styles.container}>
+      <Text style={[styles.title, { color: palette.text }]}>{t('appName')}</Text>
+      <Text style={[styles.subtitle, { color: palette.subText }]}>{t('appSubtitle')}</Text>
 
       <View style={styles.cardRow}>
-        <StatCard title="Серия дней" value={`${metrics.streak}`} subtitle="Дней подряд с прогрессом" />
-        <StatCard title="Выполнение задач" value={`${metrics.completionRate}%`} subtitle="Общий процент" />
+        <StatCard title={t('streak')} value={`${metrics.streak}`} subtitle="days" palette={palette} />
+        <StatCard title={t('completedTasks')} value={`${metrics.completionRate}%`} subtitle="rate" palette={palette} />
       </View>
 
       <View style={styles.cardRow}>
-        <StatCard title="Завершено задач" value={`${metrics.completedTasks}`} subtitle={`из ${metrics.totalTasks}`} />
-        <StatCard title="Закрыто целей" value={`${metrics.goalsCompleted}`} subtitle={`из ${goals.length}`} />
+        <StatCard title={t('completedTasks')} value={`${metrics.completedTasks}`} subtitle={`of ${metrics.totalTasks}`} palette={palette} />
+        <StatCard title={t('completedGoals')} value={`${metrics.goalsCompleted}`} subtitle={`of ${goals.length}`} palette={palette} />
       </View>
 
       <View style={styles.cardRow}>
-        <StatCard title="Продуктивность" value={`${metrics.productivityScore}%`} subtitle="Интегральный KPI" />
+        <StatCard title={t('productivity')} value={`${metrics.productivityScore}%`} subtitle="KPI" palette={palette} />
         <StatCard
-          title="Сегодня"
+          title={t('today')}
           value={`${metrics.todaysCompleted}/${metrics.dailyTaskTarget}`}
-          subtitle="Выполнено задач"
+          subtitle={t('tasks')}
+          palette={palette}
         />
       </View>
 
-      <View style={styles.panel}>
-        <Text style={styles.panelTitle}>Прогресс по целям</Text>
-        <Text style={styles.panelValue}>{avgGoalCompletion}%</Text>
-        <ProgressBar value={avgGoalCompletion} max={100} />
+      <View style={[styles.panel, { backgroundColor: palette.card, borderColor: palette.border }]}>
+        <Text style={[styles.panelTitle, { color: palette.subText }]}>{t('goals')}</Text>
+        <Text style={[styles.panelValue, { color: palette.text }]}>{avgGoalCompletion}%</Text>
+        <ProgressBar value={avgGoalCompletion} max={100} color={palette.primary} trackColor={palette.border} />
       </View>
 
-      <View style={styles.panel}>
-        <Text style={styles.panelTitle}>План на день</Text>
-        <Text style={styles.helperText}>
-          Цель на сегодня: {metrics.dailyTaskTarget} задач, закрыто {metrics.todaysCompleted}
+      <View style={[styles.panel, { backgroundColor: palette.card, borderColor: palette.border }]}>
+        <Text style={[styles.panelTitle, { color: palette.subText }]}>{t('dailyPlan')}</Text>
+        <Text style={[styles.helperText, { color: palette.subText }]}>
+          {metrics.dailyTaskTarget} / {metrics.todaysCompleted}
         </Text>
-        <ProgressBar value={metrics.todayTargetPercent} max={100} color={theme.colors.warning} />
+        <ProgressBar value={metrics.todayTargetPercent} max={100} color={palette.warning} trackColor={palette.border} />
         <View style={styles.targetRow}>
           <TextInput
             value={targetDraft}
             onChangeText={setTargetDraft}
             keyboardType="numeric"
-            placeholder="Цель в день"
-            placeholderTextColor={theme.colors.subText}
-            style={styles.targetInput}
+            placeholder={t('dailyPlan')}
+            placeholderTextColor={palette.subText}
+            style={[
+              styles.targetInput,
+              { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }
+            ]}
           />
           <Pressable
-            style={styles.applyBtn}
+            style={[styles.applyBtn, { backgroundColor: palette.primary }]}
             onPress={() => {
               setDailyTaskTarget(targetDraft);
             }}
           >
-            <Text style={styles.applyBtnText}>Сохранить</Text>
+            <Text style={styles.applyBtnText}>{t('save')}</Text>
           </Pressable>
         </View>
       </View>
 
-      <View style={styles.panel}>
-        <Text style={styles.panelTitle}>Последние 7 дней</Text>
+      <View style={[styles.panel, { backgroundColor: palette.card, borderColor: palette.border }]}>
+        <Text style={[styles.panelTitle, { color: palette.subText }]}>7 days</Text>
         <View style={styles.weekRow}>
           {metrics.last7days.map((item) => {
             const height = Math.max(6, Math.min(48, item.done * 12));
             return (
               <View key={String(item.date)} style={styles.dayCol}>
-                <View style={[styles.bar, { height }]} />
-                <Text style={styles.dayText}>{item.date.getDate()}</Text>
+                <View style={[styles.bar, { height, backgroundColor: palette.primary }]} />
+                <Text style={[styles.dayText, { color: palette.subText }]}>{item.date.getDate()}</Text>
               </View>
             );
           })}
@@ -94,7 +97,7 @@ const DashboardScreen = () => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: theme.colors.background
+    backgroundColor: '#0B1220'
   },
   container: {
     padding: 16,
@@ -102,12 +105,10 @@ const styles = StyleSheet.create({
     paddingBottom: 40
   },
   title: {
-    color: theme.colors.text,
     fontWeight: '800',
     fontSize: 24
   },
   subtitle: {
-    color: theme.colors.subText,
     marginTop: -4,
     marginBottom: 6
   },
@@ -116,24 +117,19 @@ const styles = StyleSheet.create({
     gap: 10
   },
   panel: {
-    backgroundColor: theme.colors.card,
-    borderColor: theme.colors.border,
     borderWidth: 1,
     borderRadius: 14,
     padding: 14,
     gap: 10
   },
   panelTitle: {
-    color: theme.colors.subText,
     fontWeight: '700'
   },
   panelValue: {
-    color: theme.colors.text,
     fontSize: 28,
     fontWeight: '800'
   },
   helperText: {
-    color: theme.colors.subText,
     fontSize: 13
   },
   targetRow: {
@@ -143,16 +139,12 @@ const styles = StyleSheet.create({
   },
   targetInput: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.border,
     borderWidth: 1,
     borderRadius: 10,
-    color: theme.colors.text,
     paddingHorizontal: 12,
     paddingVertical: 10
   },
   applyBtn: {
-    backgroundColor: theme.colors.primary,
     borderRadius: 10,
     paddingHorizontal: 14,
     justifyContent: 'center'
@@ -174,10 +166,9 @@ const styles = StyleSheet.create({
   bar: {
     width: 16,
     borderRadius: 8,
-    backgroundColor: theme.colors.primary
+    backgroundColor: '#4F8CFF'
   },
   dayText: {
-    color: theme.colors.subText,
     fontSize: 12
   }
 });

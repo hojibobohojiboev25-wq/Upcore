@@ -1,9 +1,10 @@
 {
   "expo": {
-    "name": "Success Tracker Pro",
-    "slug": "success-tracker-pro",
-    "version": "8.0.0",
+    "name": "Upcore",
+    "slug": "upcore",
+    "version": "8.2.0",
     "orientation": "portrait",
+    "icon": "./assets/upcore-icon.png",
     "userInterfaceStyle": "light",
     "scheme": "successtrackerpro",
     "runtimeVersion": {
@@ -13,24 +14,36 @@
       "fallbackToCacheTimeout": 0
     },
     "splash": {
+      "image": "./assets/upcore-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#101828"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.azubi.successtrackerpro",
-      "buildNumber": "8"
+      "bundleIdentifier": "com.orzuit.upcore",
+      "buildNumber": "10",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
-      "package": "com.azubi.successtrackerpro",
-      "versionCode": 8,
+      "package": "com.orzuit.upcore",
+      "versionCode": 10,
       "adaptiveIcon": {
+        "foregroundImage": "./assets/upcore-icon.png",
         "backgroundColor": "#101828"
       }
     },
     "web": {
       "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3758dcd5-f463-4040-b103-a6d2ef218793"
+      }
     }
   }
 }

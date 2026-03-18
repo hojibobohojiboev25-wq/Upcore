@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
-import { theme } from '../constants/theme';
 import { useSuccess } from '../context/SuccessContext';
 import GoalItem from '../components/GoalItem';
 
 const GoalsScreen = () => {
-  const { goals, addGoal, updateGoal, removeGoal } = useSuccess();
+  const { goals, addGoal, updateGoal, removeGoal, palette, t } = useSuccess();
   const [title, setTitle] = useState('');
   const [target, setTarget] = useState('10');
 
@@ -17,32 +16,32 @@ const GoalsScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
-      <View style={styles.form}>
-        <Text style={styles.sectionTitle}>Новая цель</Text>
+    <ScrollView style={[styles.screen, { backgroundColor: palette.background }]} contentContainerStyle={styles.container}>
+      <View style={[styles.form, { backgroundColor: palette.card, borderColor: palette.border }]}>
+        <Text style={[styles.sectionTitle, { color: palette.text }]}>{t('newGoal')}</Text>
         <TextInput
           value={title}
           onChangeText={setTitle}
-          placeholder="Например: 30 тренировок за месяц"
-          placeholderTextColor={theme.colors.subText}
-          style={styles.input}
+          placeholder={t('goalTitlePlaceholder')}
+          placeholderTextColor={palette.subText}
+          style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
         />
         <TextInput
           value={target}
           onChangeText={setTarget}
           keyboardType="numeric"
-          placeholder="Целевое число"
-          placeholderTextColor={theme.colors.subText}
-          style={styles.input}
+          placeholder={t('goalTargetPlaceholder')}
+          placeholderTextColor={palette.subText}
+          style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
         />
-        <Pressable onPress={onAdd} style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Создать цель</Text>
+        <Pressable onPress={onAdd} style={[styles.primaryButton, { backgroundColor: palette.primary }]}>
+          <Text style={styles.primaryButtonText}>{t('createGoal')}</Text>
         </Pressable>
       </View>
 
       <View style={styles.list}>
         {goals.length === 0 ? (
-          <Text style={styles.empty}>Добавь первую цель, чтобы отслеживать рост.</Text>
+          <Text style={[styles.empty, { color: palette.subText }]}>{t('noGoals')}</Text>
         ) : (
           goals.map((goal) => (
             <GoalItem
@@ -51,6 +50,8 @@ const GoalsScreen = () => {
               onMinus={() => updateGoal(goal.id, -1)}
               onPlus={() => updateGoal(goal.id, 1)}
               onDelete={() => removeGoal(goal.id)}
+              palette={palette}
+              t={t}
             />
           ))
         )}
@@ -62,7 +63,7 @@ const GoalsScreen = () => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: theme.colors.background
+    backgroundColor: '#0B1220'
   },
   container: {
     padding: 16,
@@ -70,29 +71,22 @@ const styles = StyleSheet.create({
     paddingBottom: 40
   },
   sectionTitle: {
-    color: theme.colors.text,
     fontWeight: '800',
     fontSize: 18
   },
   form: {
-    backgroundColor: theme.colors.card,
-    borderColor: theme.colors.border,
     borderWidth: 1,
     borderRadius: 14,
     padding: 12,
     gap: 10
   },
   input: {
-    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
     borderRadius: 10,
-    color: theme.colors.text,
     paddingHorizontal: 12,
     paddingVertical: 10
   },
   primaryButton: {
-    backgroundColor: theme.colors.primary,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center'
@@ -105,7 +99,6 @@ const styles = StyleSheet.create({
     gap: 10
   },
   empty: {
-    color: theme.colors.subText,
     textAlign: 'center',
     marginTop: 16
   }
