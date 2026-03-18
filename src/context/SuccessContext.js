@@ -4,7 +4,8 @@ import React, {
   useContext,
   useEffect,
   useMemo,
-  useReducer
+  useReducer,
+  useState
 } from 'react';
 import * as Haptics from 'expo-haptics';
 import { getPastDays, isSameDay, startOfDay } from '../utils/date';
@@ -12,17 +13,38 @@ import { loadState, saveState } from '../storage/storage';
 import { getPalette } from '../constants/theme';
 import { translations } from '../i18n/translations';
 import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile
+} from 'firebase/auth';
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc
+} from 'firebase/firestore';
+import {
   cancelTaskReminder,
   requestNotificationPermission,
   scheduleTaskReminder,
   setupNotifications
 } from '../services/notifications';
+import { auth, db } from '../services/firebase';
 
 const SuccessContext = createContext(null);
 
 const initialState = {
   loaded: false,
   profile: {
+    ownerUid: '',
     name: '',
     mission: '',
     age: '',
@@ -235,9 +257,12 @@ const reducer = (state, action) => {
 };
 
 const createId = () => `${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+const createRoomId = (uidA, uidB) => [uidA, uidB].sort().join('_');
 
 export const SuccessProvider = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [authUser, setAuthUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     const hydrate = async () => {
@@ -250,6 +275,39 @@ export const SuccessProvider = ({ children }) => {
       }
     };
     hydrate();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setAuthUser(user || null);
+      setAuthReady(true);
+      if (!user) return;
+      const userRef = doc(db, 'users', user.uid);
+      const existing = await getDoc(userRef);
+      if (!existing.exists()) {
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: user.email || '',
+          displayName: user.displayName || '',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
+      const latest = existing.exists() ? existing.data() : null;
+      dispatch({
+        type: actionTypes.SET_PROFILE,
+        payload: {
+          ownerUid: user.uid,
+          name: latest?.displayName || user.displayName || '',
+          mission: latest?.mission || '',
+          age: latest?.age || '',
+          city: latest?.city || '',
+          profession: latest?.profession || '',
+          ready: Boolean(latest?.displayName || user.displayName)
+        }
+      });
+    });
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
@@ -410,15 +468,39 @@ export const SuccessProvider = ({ children }) => {
     });
   }, []);
 
-  const setProfile = useCallback((profileData) => {
-    dispatch({
-      type: actionTypes.SET_PROFILE,
-      payload: {
+  const setProfile = useCallback(
+    async (profileData) => {
+      const payload = {
         ...profileData,
+        ownerUid: authUser?.uid || state.profile.ownerUid,
         ready: true
+      };
+      dispatch({
+        type: actionTypes.SET_PROFILE,
+        payload
+      });
+      if (auth.currentUser && payload.name?.trim()) {
+        await updateProfile(auth.currentUser, { displayName: payload.name.trim() });
       }
-    });
-  }, []);
+      if (authUser?.uid) {
+        await setDoc(
+          doc(db, 'users', authUser.uid),
+          {
+            uid: authUser.uid,
+            email: authUser.email || '',
+            displayName: payload.name || authUser.displayName || '',
+            mission: payload.mission || '',
+            age: payload.age || '',
+            city: payload.city || '',
+            profession: payload.profession || '',
+            updatedAt: serverTimestamp()
+          },
+          { merge: true }
+        );
+      }
+    },
+    [authUser, state.profile.ownerUid]
+  );
 
   const updateSettings = useCallback((settingsPatch) => {
     dispatch({
@@ -497,6 +579,114 @@ export const SuccessProvider = ({ children }) => {
     });
   }, []);
 
+  const signUpWithEmail = useCallback(async ({ email, password, name }) => {
+    const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+    if (name?.trim()) {
+      await updateProfile(credential.user, { displayName: name.trim() });
+    }
+    await setDoc(
+      doc(db, 'users', credential.user.uid),
+      {
+        uid: credential.user.uid,
+        email: credential.user.email || email.trim(),
+        displayName: name?.trim() || credential.user.displayName || '',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      },
+      { merge: true }
+    );
+    return credential.user;
+  }, []);
+
+  const signInWithEmail = useCallback(async ({ email, password }) => {
+    const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+    return credential.user;
+  }, []);
+
+  const signOutUser = useCallback(async () => {
+    await signOut(auth);
+  }, []);
+
+  const sendGlobalMessage = useCallback(
+    async (text) => {
+      const cleanText = String(text || '').trim();
+      if (!authUser?.uid || !cleanText) return false;
+      await addDoc(collection(db, 'globalMessages'), {
+        text: cleanText,
+        userId: authUser.uid,
+        userName: authUser.displayName || state.profile.name || authUser.email || 'User',
+        createdAt: serverTimestamp()
+      });
+      return true;
+    },
+    [authUser, state.profile.name]
+  );
+
+  const subscribeGlobalMessages = useCallback((listener) => {
+    const messagesQuery = query(
+      collection(db, 'globalMessages'),
+      orderBy('createdAt', 'asc'),
+      limit(250)
+    );
+    return onSnapshot(messagesQuery, (snapshot) => {
+      const data = snapshot.docs.map((entry) => ({
+        id: entry.id,
+        ...entry.data()
+      }));
+      listener(data);
+    });
+  }, []);
+
+  const subscribeUsers = useCallback(
+    (listener) => {
+      const usersQuery = query(collection(db, 'users'), limit(200));
+      return onSnapshot(usersQuery, (snapshot) => {
+        const users = snapshot.docs
+          .map((entry) => ({ id: entry.id, ...entry.data() }))
+          .filter((user) => user.uid !== authUser?.uid)
+          .sort((a, b) => String(a.displayName || '').localeCompare(String(b.displayName || '')));
+        listener(users);
+      });
+    },
+    [authUser?.uid]
+  );
+
+  const sendDirectMessage = useCallback(
+    async ({ peerId, text }) => {
+      const cleanText = String(text || '').trim();
+      if (!authUser?.uid || !peerId || !cleanText) return false;
+      const roomId = createRoomId(authUser.uid, peerId);
+      await addDoc(collection(db, 'privateRooms', roomId, 'messages'), {
+        text: cleanText,
+        userId: authUser.uid,
+        userName: authUser.displayName || state.profile.name || authUser.email || 'User',
+        createdAt: serverTimestamp()
+      });
+      return true;
+    },
+    [authUser, state.profile.name]
+  );
+
+  const subscribeDirectMessages = useCallback(
+    (peerId, listener) => {
+      if (!authUser?.uid || !peerId) return () => {};
+      const roomId = createRoomId(authUser.uid, peerId);
+      const roomQuery = query(
+        collection(db, 'privateRooms', roomId, 'messages'),
+        orderBy('createdAt', 'asc'),
+        limit(250)
+      );
+      return onSnapshot(roomQuery, (snapshot) => {
+        const data = snapshot.docs.map((entry) => ({
+          id: entry.id,
+          ...entry.data()
+        }));
+        listener(data);
+      });
+    },
+    [authUser?.uid]
+  );
+
   const t = useCallback(
     (key) => {
       const lang = state.settings.language || 'ru';
@@ -510,6 +700,8 @@ export const SuccessProvider = ({ children }) => {
   const value = useMemo(
     () => ({
       loaded: state.loaded,
+      authUser,
+      authReady,
       profile: state.profile,
       tasks: state.tasks,
       goals: state.goals,
@@ -531,11 +723,21 @@ export const SuccessProvider = ({ children }) => {
       addTrackedApp,
       startTrackedApp,
       stopTrackedApp,
-      removeTrackedApp
+      removeTrackedApp,
+      signUpWithEmail,
+      signInWithEmail,
+      signOutUser,
+      sendGlobalMessage,
+      subscribeGlobalMessages,
+      subscribeUsers,
+      sendDirectMessage,
+      subscribeDirectMessages
     }),
     [
       addGoal,
       addTask,
+      authReady,
+      authUser,
       metrics,
       palette,
       removeGoal,
@@ -543,6 +745,11 @@ export const SuccessProvider = ({ children }) => {
       removeTrackedApp,
       setDailyTaskTarget,
       setProfile,
+      sendDirectMessage,
+      sendGlobalMessage,
+      signInWithEmail,
+      signOutUser,
+      signUpWithEmail,
       startTrackedApp,
       state.goals,
       state.loaded,
@@ -551,6 +758,9 @@ export const SuccessProvider = ({ children }) => {
       state.tasks,
       state.trackedApps,
       stopTrackedApp,
+      subscribeDirectMessages,
+      subscribeGlobalMessages,
+      subscribeUsers,
       t,
       toggleTask,
       addTrackedApp,

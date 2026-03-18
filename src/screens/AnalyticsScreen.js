@@ -1,10 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useSuccess } from '../context/SuccessContext';
 import ProgressBar from '../components/ProgressBar';
+import { generateProgressInsight } from '../services/aiCoach';
 
 const AnalyticsScreen = () => {
-  const { tasks, goals, metrics, trackedApps, settings, palette, t } = useSuccess();
+  const { tasks, goals, metrics, trackedApps, settings, profile, palette, t } = useSuccess();
+  const [aiInsight, setAiInsight] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
   const highPriorityDone = tasks.filter((t) => t.priority === 'high' && t.completed).length;
   const totalHighPriority = tasks.filter((t) => t.priority === 'high').length;
   const goalsOverall = goals.length
@@ -56,6 +59,25 @@ const AnalyticsScreen = () => {
     hour: 0,
     count: 0
   });
+
+  const onGenerateAiInsight = async () => {
+    setAiLoading(true);
+    try {
+      const text = await generateProgressInsight({
+        language: settings.language,
+        profile,
+        metrics,
+        tasks,
+        goals,
+        trackedApps
+      });
+      setAiInsight(text || t('aiError'));
+    } catch (error) {
+      setAiInsight(t('aiError'));
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   return (
     <ScrollView
@@ -140,6 +162,28 @@ const AnalyticsScreen = () => {
           {t('mostActiveHour')}: {String(topHour.hour).padStart(2, '0')}:00
         </Text>
       </View>
+
+      <View style={[styles.panel, { backgroundColor: palette.card, borderColor: palette.border }]}>
+        <Text style={[styles.panelTitle, { color: palette.text }]}>{t('aiCoach')}</Text>
+        <Pressable
+          style={[styles.aiBtn, { backgroundColor: palette.primary }]}
+          onPress={onGenerateAiInsight}
+          disabled={aiLoading}
+        >
+          {aiLoading ? (
+            <View style={styles.aiLoadingRow}>
+              <ActivityIndicator color="#fff" />
+              <Text style={styles.aiBtnText}>{t('aiLoading')}</Text>
+            </View>
+          ) : (
+            <Text style={styles.aiBtnText}>{t('generateInsight')}</Text>
+          )}
+        </Pressable>
+        <Text style={[styles.aiTitle, { color: palette.text }]}>{t('aiInsightTitle')}</Text>
+        <Text style={[styles.aiBody, { color: palette.subText }]}>
+          {aiInsight || t('aiInsightPlaceholder')}
+        </Text>
+      </View>
     </ScrollView>
   );
 };
@@ -221,6 +265,28 @@ const styles = StyleSheet.create({
   },
   usageDay: {
     fontSize: 11
+  },
+  aiBtn: {
+    borderRadius: 10,
+    alignItems: 'center',
+    paddingVertical: 12
+  },
+  aiBtnText: {
+    color: '#fff',
+    fontWeight: '800'
+  },
+  aiTitle: {
+    fontSize: 15,
+    fontWeight: '800'
+  },
+  aiBody: {
+    fontSize: 13,
+    lineHeight: 20
+  },
+  aiLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
   }
 });
 

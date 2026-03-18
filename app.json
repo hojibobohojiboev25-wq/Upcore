@@ -29,6 +29,7 @@
     },
     "android": {
       "package": "com.orzuit.upcore",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 11,
       "adaptiveIcon": {
         "foregroundImage": "./assets/upcore-icon.png",

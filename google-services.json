@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "472064480542",
+    "project_id": "upcore-59369",
+    "storage_bucket": "upcore-59369.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:472064480542:android:ac4ee9884ac909fb4ee50f",
+        "android_client_info": {
+          "package_name": "com.orzuit.upcore"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBj1aLXZN-IeS9rVC7NQaG9hJxnQ-T85lU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -20,6 +20,10 @@ import IntroSplashScreen from './src/screens/IntroSplashScreen';
 import AppsScreen from './src/screens/AppsScreen';
 import AppAnalyticsDetailScreen from './src/screens/AppAnalyticsDetailScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
+import AuthScreen from './src/screens/AuthScreen';
+import GlobalChatScreen from './src/screens/GlobalChatScreen';
+import ChatUsersScreen from './src/screens/ChatUsersScreen';
+import DirectChatScreen from './src/screens/DirectChatScreen';
 import { useSuccess } from './src/context/SuccessContext';
 
 const Tab = createBottomTabNavigator();
@@ -30,6 +34,7 @@ const tabIconMap = {
   Tasks: 'checkmark-circle-outline',
   Goals: 'flag-outline',
   Analytics: 'stats-chart-outline',
+  Chat: 'chatbubbles-outline',
   Profile: 'person-outline'
 };
 
@@ -61,6 +66,18 @@ const MainTabs = () => {
       <Tab.Screen name="Goals" component={GoalsScreen} options={{ title: t('goals') }} />
       <Tab.Screen name="Analytics" component={AnalyticsScreen} options={{ title: t('analytics') }} />
       <Tab.Screen
+        name="Chat"
+        component={GlobalChatScreen}
+        options={({ navigation }) => ({
+          title: t('globalChat'),
+          headerRight: () => (
+            <Pressable onPress={() => navigation.getParent()?.navigate('ChatUsers')} style={{ padding: 4 }}>
+              <Ionicons name="people-outline" size={24} color={palette.text} />
+            </Pressable>
+          )
+        })}
+      />
+      <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={({ navigation }) => ({
@@ -77,7 +94,7 @@ const MainTabs = () => {
 };
 
 const AppContent = () => {
-  const { loaded, profile, palette, t } = useSuccess();
+  const { loaded, authReady, authUser, profile, palette, t } = useSuccess();
   const [introDone, setIntroDone] = useState(false);
 
   useEffect(() => {
@@ -99,8 +116,12 @@ const AppContent = () => {
     );
   }
 
-  if (!introDone) {
+  if (!introDone || !authReady) {
     return <IntroSplashScreen onDone={() => setIntroDone(true)} />;
+  }
+
+  if (!authUser) {
+    return <AuthScreen />;
   }
 
   if (!profile?.ready) {
@@ -148,6 +169,24 @@ const AppContent = () => {
           component={EditProfileScreen}
           options={{
             title: t('editProfile'),
+            headerStyle: { backgroundColor: palette.background },
+            headerTintColor: palette.text
+          }}
+        />
+        <Stack.Screen
+          name="ChatUsers"
+          component={ChatUsersScreen}
+          options={{
+            title: t('directChats'),
+            headerStyle: { backgroundColor: palette.background },
+            headerTintColor: palette.text
+          }}
+        />
+        <Stack.Screen
+          name="DirectChat"
+          component={DirectChatScreen}
+          options={{
+            title: t('chat'),
             headerStyle: { backgroundColor: palette.background },
             headerTintColor: palette.text
           }}

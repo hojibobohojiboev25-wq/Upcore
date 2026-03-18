@@ -13,7 +13,7 @@ import { useSuccess } from '../context/SuccessContext';
 import StatCard from '../components/StatCard';
 
 const ProfileScreen = ({ navigation }) => {
-  const { profile, metrics, updateSettings, settings, palette, t } = useSuccess();
+  const { profile, metrics, updateSettings, settings, signOutUser, palette, t } = useSuccess();
 
   return (
     <KeyboardAvoidingView
@@ -68,6 +68,13 @@ const ProfileScreen = ({ navigation }) => {
           <Text style={[styles.switchValue, { color: palette.primary }]}>
             {settings.compactMode ? t('on') : t('off')}
           </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.switchRow, { borderColor: palette.border }]}
+          onPress={signOutUser}
+        >
+          <Text style={[styles.switchLabel, { color: palette.text }]}>{t('signOut')}</Text>
+          <Text style={[styles.switchValue, { color: palette.danger }]}>↗</Text>
         </Pressable>
       </View>
       </ScrollView>
