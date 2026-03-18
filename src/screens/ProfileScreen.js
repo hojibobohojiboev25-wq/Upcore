@@ -1,21 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TextInput,
   Pressable,
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSuccess } from '../context/SuccessContext';
 import StatCard from '../components/StatCard';
 
-const ProfileScreen = () => {
-  const { profile, metrics, updateSettings, settings, setProfile, palette, t } = useSuccess();
-  const [name, setName] = useState(profile.name || '');
-  const [mission, setMission] = useState(profile.mission || '');
+const ProfileScreen = ({ navigation }) => {
+  const { profile, metrics, updateSettings, settings, palette, t } = useSuccess();
 
   return (
     <KeyboardAvoidingView
@@ -28,39 +26,36 @@ const ProfileScreen = () => {
         keyboardShouldPersistTaps="handled"
       >
       <View style={[styles.profileCard, { backgroundColor: palette.card, borderColor: palette.border }]}>
-        <Text style={[styles.name, { color: palette.text }]}>{profile.name || t('profile')}</Text>
-        <Text style={[styles.mission, { color: palette.subText }]}>
-          {profile.mission || t('profileGreeting')}
+        <View style={styles.profileHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.name, { color: palette.text }]}>{profile.name || t('profile')}</Text>
+            <Text style={[styles.mission, { color: palette.subText }]}>
+              {profile.mission || t('profileGreeting')}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => navigation.navigate('EditProfile')}
+            style={[styles.editIconBtn, { borderColor: palette.border, backgroundColor: palette.surface }]}
+          >
+            <Ionicons name="create-outline" size={18} color={palette.primary} />
+          </Pressable>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={[styles.infoText, { color: palette.subText }]}>
+            {t('age')}: {profile.age || '-'}
+          </Text>
+          <Text style={[styles.infoText, { color: palette.subText }]}>
+            {t('city')}: {profile.city || '-'}
+          </Text>
+        </View>
+        <Text style={[styles.infoText, { color: palette.subText }]}>
+          {t('profession')}: {profile.profession || '-'}
         </Text>
       </View>
 
       <View style={styles.cardRow}>
         <StatCard title={t('completedTasks')} value={`${metrics.completedTasks}`} subtitle="" palette={palette} />
         <StatCard title={t('streak')} value={`${metrics.streak}`} subtitle="" palette={palette} />
-      </View>
-
-      <View style={[styles.form, { backgroundColor: palette.card, borderColor: palette.border }]}>
-        <Text style={[styles.title, { color: palette.text }]}>{t('updateProfile')}</Text>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder={t('yourName')}
-          placeholderTextColor={palette.subText}
-          style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
-        />
-        <TextInput
-          value={mission}
-          onChangeText={setMission}
-          placeholder={t('yourGoal')}
-          placeholderTextColor={palette.subText}
-          style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
-        />
-        <Pressable
-          style={[styles.primaryBtn, { backgroundColor: palette.primary }]}
-          onPress={() => setProfile({ name: name.trim() || profile.name, mission: mission.trim() })}
-        >
-          <Text style={styles.primaryBtnText}>{t('saveChanges')}</Text>
-        </Pressable>
       </View>
 
       <View style={[styles.form, { backgroundColor: palette.card, borderColor: palette.border }]}>
@@ -92,6 +87,26 @@ const styles = StyleSheet.create({
   },
   name: { fontSize: 26, fontWeight: '800' },
   mission: { fontSize: 14 },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10
+  },
+  editIconBtn: {
+    width: 34,
+    height: 34,
+    borderWidth: 1,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  infoRow: {
+    flexDirection: 'row',
+    gap: 12
+  },
+  infoText: {
+    fontSize: 13
+  },
   cardRow: { flexDirection: 'row', gap: 10 },
   form: {
     borderWidth: 1,
@@ -100,18 +115,6 @@ const styles = StyleSheet.create({
     gap: 10
   },
   title: { fontSize: 18, fontWeight: '800' },
-  input: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10
-  },
-  primaryBtn: {
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center'
-  },
-  primaryBtnText: { color: '#fff', fontWeight: '800' },
   switchRow: {
     borderWidth: 1,
     borderRadius: 10,

@@ -19,6 +19,7 @@ import WelcomeScreen from './src/screens/WelcomeScreen';
 import IntroSplashScreen from './src/screens/IntroSplashScreen';
 import AppsScreen from './src/screens/AppsScreen';
 import AppAnalyticsDetailScreen from './src/screens/AppAnalyticsDetailScreen';
+import EditProfileScreen from './src/screens/EditProfileScreen';
 import { useSuccess } from './src/context/SuccessContext';
 
 const Tab = createBottomTabNavigator();
@@ -138,6 +139,15 @@ const AppContent = () => {
           component={AppAnalyticsDetailScreen}
           options={{
             title: t('appAnalytics'),
+            headerStyle: { backgroundColor: palette.background },
+            headerTintColor: palette.text
+          }}
+        />
+        <Stack.Screen
+          name="EditProfile"
+          component={EditProfileScreen}
+          options={{
+            title: t('editProfile'),
             headerStyle: { backgroundColor: palette.background },
             headerTintColor: palette.text
           }}

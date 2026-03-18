@@ -25,6 +25,9 @@ const initialState = {
   profile: {
     name: '',
     mission: '',
+    age: '',
+    city: '',
+    profession: '',
     ready: false
   },
   tasks: [],
@@ -40,7 +43,9 @@ const initialState = {
     twentyFourHour: true,
     reminderMinutes: 20,
     weekStartsOn: 'monday',
-    defaultPriority: 'medium'
+    defaultPriority: 'medium',
+    showGuide: true,
+    trackingAccess: false
   },
   trackedApps: [],
   meta: {
@@ -375,12 +380,13 @@ export const SuccessProvider = ({ children }) => {
     [state.tasks]
   );
 
-  const addGoal = useCallback(({ title, target }) => {
+  const addGoal = useCallback(({ title, target, period }) => {
     const payload = {
       id: createId(),
       title,
       target: Math.max(1, Number(target) || 1),
       current: 0,
+      period: period || 'monthly',
       createdAt: new Date().toISOString()
     };
     dispatch({ type: actionTypes.ADD_GOAL, payload });

@@ -21,6 +21,7 @@ const TasksScreen = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [priority, setPriority] = useState(settings.defaultPriority || 'medium');
+  const [taskBucket, setTaskBucket] = useState('anytime');
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('newest');
@@ -59,13 +60,27 @@ const TasksScreen = () => {
 
   const onAdd = async () => {
     if (!title.trim()) return;
-    const dueAt = buildDueAt();
+    let dueAt = buildDueAt();
+    if (!dueAt && taskBucket !== 'anytime') {
+      const now = new Date();
+      if (taskBucket === 'today') {
+        now.setHours(20, 0, 0, 0);
+      } else if (taskBucket === 'tomorrow') {
+        now.setDate(now.getDate() + 1);
+        now.setHours(20, 0, 0, 0);
+      } else if (taskBucket === 'week') {
+        now.setDate(now.getDate() + 7);
+        now.setHours(20, 0, 0, 0);
+      }
+      dueAt = now.toISOString();
+    }
     await addTask({ title: title.trim(), note: note.trim(), priority, dueAt });
     setTitle('');
     setNote('');
     setSelectedDate(null);
     setSelectedTime(null);
     setPriority(settings.defaultPriority || 'medium');
+    setTaskBucket('anytime');
   };
 
   return (
@@ -117,6 +132,35 @@ const TasksScreen = () => {
               ? `${t('dueDate')}: ${formatDate(buildDueAt())} ${formatTime(buildDueAt(), settings.twentyFourHour)}`
               : t('noDueDate')}
           </Text>
+
+          <Text style={[styles.helperTitle, { color: palette.text }]}>{t('taskBucket')}</Text>
+          <View style={styles.row}>
+            {[
+              { key: 'today', label: t('todayTasks') },
+              { key: 'tomorrow', label: t('tomorrowTasks') },
+              { key: 'week', label: t('weekTasks') },
+              { key: 'anytime', label: t('anytime') }
+            ].map((item) => (
+              <Pressable
+                key={item.key}
+                onPress={() => setTaskBucket(item.key)}
+                style={[
+                  styles.bucketChip,
+                  { backgroundColor: palette.surface, borderColor: palette.border },
+                  taskBucket === item.key && { borderColor: palette.primary }
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.bucketChipText,
+                    { color: taskBucket === item.key ? palette.primary : palette.subText }
+                  ]}
+                >
+                  {item.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
 
           <View style={styles.row}>
             {['low', 'medium', 'high'].map((item) => (
@@ -273,6 +317,20 @@ const styles = StyleSheet.create({
   },
   helper: {
     fontSize: 12
+  },
+  helperTitle: {
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  bucketChip: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10
+  },
+  bucketChipText: {
+    fontSize: 12,
+    fontWeight: '700'
   },
   chip: {
     flex: 1,

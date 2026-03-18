@@ -13,7 +13,7 @@ import {
 import { useSuccess } from '../context/SuccessContext';
 
 const WelcomeScreen = () => {
-  const { setProfile, palette, t } = useSuccess();
+  const { setProfile, updateSettings, settings, palette, t } = useSuccess();
   const { width } = useWindowDimensions();
   const [name, setName] = useState('');
   const [mission, setMission] = useState('');
@@ -35,6 +35,33 @@ const WelcomeScreen = () => {
         </View>
 
         <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.border }]}>
+          <Text style={[styles.langTitle, { color: palette.text }]}>{t('language')}</Text>
+          <View style={styles.langRow}>
+            {[
+              { code: 'en', label: 'EN' },
+              { code: 'ru', label: 'RU' },
+              { code: 'de', label: 'DE' }
+            ].map((item) => (
+              <Pressable
+                key={item.code}
+                onPress={() => updateSettings({ language: item.code })}
+                style={[
+                  styles.langChip,
+                  { backgroundColor: palette.surface, borderColor: palette.border },
+                  settings.language === item.code && { borderColor: palette.primary }
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.langChipText,
+                    { color: settings.language === item.code ? palette.primary : palette.subText }
+                  ]}
+                >
+                  {item.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
           <TextInput
             value={name}
             onChangeText={setName}
@@ -94,6 +121,24 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 13
+  },
+  langTitle: {
+    fontSize: 14,
+    fontWeight: '700'
+  },
+  langRow: {
+    flexDirection: 'row',
+    gap: 8
+  },
+  langChip: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: 'center',
+    paddingVertical: 10
+  },
+  langChipText: {
+    fontWeight: '700'
   },
   card: {
     borderWidth: 1,

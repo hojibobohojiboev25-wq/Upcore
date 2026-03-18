@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Modal } from 'react-native';
 import { useSuccess } from '../context/SuccessContext';
 import StatCard from '../components/StatCard';
 import ProgressBar from '../components/ProgressBar';
 
 const DashboardScreen = () => {
-  const { metrics, goals, setDailyTaskTarget, settings, palette, t } = useSuccess();
+  const { metrics, goals, setDailyTaskTarget, settings, updateSettings, palette, t } = useSuccess();
   const [targetDraft, setTargetDraft] = useState(String(metrics.dailyTaskTarget));
+  const guideSteps = [t('onboardingStep1'), t('onboardingStep2'), t('onboardingStep3')];
+  const [guideIndex, setGuideIndex] = useState(0);
   useEffect(() => {
     setTargetDraft(String(metrics.dailyTaskTarget));
   }, [metrics.dailyTaskTarget]);
@@ -21,6 +23,42 @@ const DashboardScreen = () => {
       style={[styles.screen, { backgroundColor: palette.background }]}
       contentContainerStyle={[styles.container, settings.compactMode && styles.compactContainer]}
     >
+      <Modal
+        visible={settings.showGuide}
+        transparent
+        animationType="fade"
+        onRequestClose={() => updateSettings({ showGuide: false })}
+      >
+        <View style={styles.guideOverlay}>
+          <View style={[styles.guideCard, { backgroundColor: palette.card, borderColor: palette.border }]}>
+            <Text style={[styles.guideTitle, { color: palette.text }]}>{t('onboardingTitle')}</Text>
+            <Text style={[styles.guideText, { color: palette.subText }]}>{guideSteps[guideIndex]}</Text>
+            <View style={styles.guideActions}>
+              <Pressable
+                style={[styles.guideBtn, { borderColor: palette.border }]}
+                onPress={() => updateSettings({ showGuide: false })}
+              >
+                <Text style={[styles.guideBtnText, { color: palette.subText }]}>{t('close')}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.guideBtnPrimary, { backgroundColor: palette.primary }]}
+                onPress={() => {
+                  if (guideIndex >= guideSteps.length - 1) {
+                    updateSettings({ showGuide: false });
+                    return;
+                  }
+                  setGuideIndex((prev) => prev + 1);
+                }}
+              >
+                <Text style={styles.guideBtnPrimaryText}>
+                  {guideIndex >= guideSteps.length - 1 ? t('close') : t('next')}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Text style={[styles.title, { color: palette.text }]}>{t('appName')}</Text>
       <Text style={[styles.subtitle, { color: palette.subText }]}>{t('appSubtitle')}</Text>
 
@@ -112,6 +150,52 @@ const styles = StyleSheet.create({
   compactContainer: {
     padding: 12,
     gap: 10
+  },
+  guideOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 22
+  },
+  guideCard: {
+    width: '100%',
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    gap: 12
+  },
+  guideTitle: {
+    fontSize: 18,
+    fontWeight: '800'
+  },
+  guideText: {
+    fontSize: 14,
+    lineHeight: 20
+  },
+  guideActions: {
+    flexDirection: 'row',
+    gap: 8
+  },
+  guideBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: 'center',
+    paddingVertical: 10
+  },
+  guideBtnText: {
+    fontWeight: '700'
+  },
+  guideBtnPrimary: {
+    flex: 1,
+    borderRadius: 10,
+    alignItems: 'center',
+    paddingVertical: 10
+  },
+  guideBtnPrimaryText: {
+    color: '#fff',
+    fontWeight: '800'
   },
   title: {
     fontWeight: '800',

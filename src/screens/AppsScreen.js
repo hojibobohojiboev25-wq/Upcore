@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSuccess } from '../context/SuccessContext';
 import { formatDuration } from '../utils/date';
 
@@ -19,10 +19,22 @@ const suggestions = [
 ];
 
 const AppsScreen = ({ navigation }) => {
-  const { trackedApps, addTrackedApp, startTrackedApp, stopTrackedApp, removeTrackedApp, palette, t } =
+  const { trackedApps, addTrackedApp, startTrackedApp, stopTrackedApp, removeTrackedApp, settings, updateSettings, palette, t } =
     useSuccess();
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
+
+  const ensureTrackingAccess = () => {
+    if (settings.trackingAccess) return true;
+    Alert.alert(t('myApps'), t('installedAppsAccessNote'), [
+      { text: t('close'), style: 'cancel' },
+      {
+        text: t('continue'),
+        onPress: () => updateSettings({ trackingAccess: true })
+      }
+    ]);
+    return false;
+  };
 
   const sortedApps = useMemo(
     () => [...trackedApps].sort((a, b) => (b.totalSeconds || 0) - (a.totalSeconds || 0)),
@@ -30,6 +42,7 @@ const AppsScreen = ({ navigation }) => {
   );
 
   const quickAdd = (appName) => {
+    if (!ensureTrackingAccess()) return;
     const created = addTrackedApp({ name: appName, category: 'General' });
     if (!created) return;
   };
@@ -55,6 +68,7 @@ const AppsScreen = ({ navigation }) => {
         <Pressable
           style={[styles.primary, { backgroundColor: palette.primary }]}
           onPress={() => {
+            if (!ensureTrackingAccess()) return;
             const ok = addTrackedApp({ name, category });
             if (!ok) return;
             setName('');
@@ -91,7 +105,10 @@ const AppsScreen = ({ navigation }) => {
             <View style={styles.actions}>
               <Pressable
                 style={[styles.action, { borderColor: palette.border }]}
-                onPress={() => (app.isRunning ? stopTrackedApp(app.id) : startTrackedApp(app.id))}
+                onPress={() => {
+                  if (!ensureTrackingAccess()) return;
+                  app.isRunning ? stopTrackedApp(app.id) : startTrackedApp(app.id);
+                }}
               >
                 <Text style={[styles.actionText, { color: palette.primary }]}>
                   {app.isRunning ? t('stop') : t('start')}

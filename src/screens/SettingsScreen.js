@@ -170,11 +170,19 @@ const SettingsScreen = ({ navigation }) => {
           <Text style={[styles.switchLabel, { color: palette.text }]}>{t('clearCompleted')}</Text>
           <Text style={[styles.switchValue, { color: palette.danger }]}>✓</Text>
         </Pressable>
+        <Pressable
+          style={[styles.switchRow, { borderColor: palette.border }]}
+          onPress={() => updateSettings({ showGuide: true })}
+        >
+          <Text style={[styles.switchLabel, { color: palette.text }]}>{t('showGuideAgain')}</Text>
+          <Text style={[styles.switchValue, { color: palette.primary }]}>{'>'}</Text>
+        </Pressable>
       </View>
 
       <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.border }]}>
         <Text style={[styles.title, { color: palette.text }]}>{t('myApps')}</Text>
         <Text style={[styles.info, { color: palette.subText }]}>{t('trackerNotSupported')}</Text>
+        <Text style={[styles.info, { color: palette.subText }]}>{t('installedAppsAccessNote')}</Text>
         <Pressable
           style={[styles.switchRow, { borderColor: palette.border }]}
           onPress={() => navigation.navigate('Apps')}

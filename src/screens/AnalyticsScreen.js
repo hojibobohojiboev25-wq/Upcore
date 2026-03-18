@@ -4,7 +4,7 @@ import { useSuccess } from '../context/SuccessContext';
 import ProgressBar from '../components/ProgressBar';
 
 const AnalyticsScreen = () => {
-  const { tasks, goals, metrics, settings, palette, t } = useSuccess();
+  const { tasks, goals, metrics, trackedApps, settings, palette, t } = useSuccess();
   const highPriorityDone = tasks.filter((t) => t.priority === 'high' && t.completed).length;
   const totalHighPriority = tasks.filter((t) => t.priority === 'high').length;
   const goalsOverall = goals.length
@@ -33,6 +33,29 @@ const AnalyticsScreen = () => {
       desc: t('goalsMasterDesc')
     }
   ];
+
+  const appUsageByDay = metrics.last7days.map((day) => {
+    const key = day.date.toDateString();
+    const totalSec = trackedApps.reduce((sum, app) => {
+      const sec = (app.sessions || [])
+        .filter((session) => new Date(session.startedAt).toDateString() === key)
+        .reduce((acc, session) => acc + (session.durationSec || 0), 0);
+      return sum + sec;
+    }, 0);
+    return { day: day.date.getDate(), sec: totalSec };
+  });
+  const maxUsageSec = Math.max(1, ...appUsageByDay.map((item) => item.sec));
+  const allSessions = trackedApps.flatMap((app) => app.sessions || []);
+  const totalSessionSec = allSessions.reduce((sum, session) => sum + (session.durationSec || 0), 0);
+  const avgSessionSec = allSessions.length ? Math.round(totalSessionSec / allSessions.length) : 0;
+  const hourHistogram = Array.from({ length: 24 }).map((_, hour) => {
+    const count = allSessions.filter((session) => new Date(session.startedAt).getHours() === hour).length;
+    return { hour, count };
+  });
+  const topHour = hourHistogram.reduce((best, item) => (item.count > best.count ? item : best), {
+    hour: 0,
+    count: 0
+  });
 
   return (
     <ScrollView
@@ -88,6 +111,34 @@ const AnalyticsScreen = () => {
             </View>
           ))}
         </View>
+      </View>
+
+      <View style={[styles.panel, { backgroundColor: palette.card, borderColor: palette.border }]}>
+        <Text style={[styles.panelTitle, { color: palette.text }]}>{t('usagePerDay')}</Text>
+        <View style={styles.usageBars}>
+          {appUsageByDay.map((item) => (
+            <View key={String(item.day)} style={styles.usageCol}>
+              <View style={[styles.usageTrack, { backgroundColor: palette.border }]}>
+                <View
+                  style={[
+                    styles.usageFill,
+                    {
+                      backgroundColor: palette.primary,
+                      height: `${Math.round((item.sec / maxUsageSec) * 100)}%`
+                    }
+                  ]}
+                />
+              </View>
+              <Text style={[styles.usageDay, { color: palette.subText }]}>{item.day}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={[styles.metricLabel, { color: palette.subText }]}>
+          {t('avgSession')}: {Math.max(0, Math.floor(avgSessionSec / 60))}m
+        </Text>
+        <Text style={[styles.metricLabel, { color: palette.subText }]}>
+          {t('mostActiveHour')}: {String(topHour.hour).padStart(2, '0')}:00
+        </Text>
       </View>
     </ScrollView>
   );
@@ -146,7 +197,31 @@ const styles = StyleSheet.create({
   achievementTitle: {
     fontWeight: '700'
   },
-  achievementDesc: {}
+  achievementDesc: {},
+  usageBars: {
+    height: 120,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between'
+  },
+  usageCol: {
+    alignItems: 'center',
+    gap: 6
+  },
+  usageTrack: {
+    width: 18,
+    height: 90,
+    borderRadius: 9,
+    justifyContent: 'flex-end',
+    overflow: 'hidden'
+  },
+  usageFill: {
+    width: '100%',
+    minHeight: 4
+  },
+  usageDay: {
+    fontSize: 11
+  }
 });
 
 export default AnalyticsScreen;

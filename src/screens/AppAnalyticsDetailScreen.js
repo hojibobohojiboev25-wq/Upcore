@@ -34,6 +34,17 @@ const AppAnalyticsDetailScreen = ({ route }) => {
   }
 
   const maxSec = Math.max(...sessionsByDay.map((item) => item.sec), 1);
+  const avgSessionSec = (app.sessions || []).length
+    ? Math.round((app.totalSeconds || 0) / (app.sessions || []).length)
+    : 0;
+  const hourHistogram = Array.from({ length: 24 }).map((_, hour) => {
+    const count = (app.sessions || []).filter((session) => new Date(session.startedAt).getHours() === hour).length;
+    return { hour, count };
+  });
+  const topHour = hourHistogram.reduce((best, item) => (item.count > best.count ? item : best), {
+    hour: 0,
+    count: 0
+  });
 
   return (
     <ScrollView style={[styles.screen, { backgroundColor: palette.background }]} contentContainerStyle={styles.container}>
@@ -44,6 +55,10 @@ const AppAnalyticsDetailScreen = ({ route }) => {
         </Text>
         <Text style={[styles.meta, { color: palette.subText }]}>
           {t('openCount')}: {app.openCount || 0} | {t('sessions')}: {(app.sessions || []).length}
+        </Text>
+        <Text style={[styles.meta, { color: palette.subText }]}>
+          {t('avgSession')}: {formatDuration(avgSessionSec)} | {t('mostActiveHour')}:{' '}
+          {String(topHour.hour).padStart(2, '0')}:00
         </Text>
       </View>
 
@@ -83,7 +98,8 @@ const AppAnalyticsDetailScreen = ({ route }) => {
             .map((session, index) => (
               <View key={`${session.startedAt}_${index}`} style={[styles.sessionRow, { borderBottomColor: palette.border }]}>
                 <Text style={[styles.meta, { color: palette.text }]}>
-                  {formatDate(session.startedAt)} {formatTime(session.startedAt, settings.twentyFourHour)}
+                  {formatDate(session.startedAt)} {formatTime(session.startedAt, settings.twentyFourHour)} -{' '}
+                  {formatTime(session.endedAt, settings.twentyFourHour)}
                 </Text>
                 <Text style={[styles.meta, { color: palette.subText }]}>
                   {formatDuration(session.durationSec)}

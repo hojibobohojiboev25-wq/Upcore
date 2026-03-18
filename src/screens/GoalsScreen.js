@@ -16,12 +16,14 @@ const GoalsScreen = () => {
   const { goals, addGoal, updateGoal, removeGoal, settings, palette, t } = useSuccess();
   const [title, setTitle] = useState('');
   const [target, setTarget] = useState('10');
+  const [period, setPeriod] = useState('monthly');
 
   const onAdd = () => {
     if (!title.trim()) return;
-    addGoal({ title: title.trim(), target: Number(target) || 1 });
+    addGoal({ title: title.trim(), target: Number(target) || 1, period });
     setTitle('');
     setTarget('10');
+    setPeriod('monthly');
   };
 
   return (
@@ -51,6 +53,28 @@ const GoalsScreen = () => {
           placeholderTextColor={palette.subText}
           style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
         />
+        <Text style={[styles.periodTitle, { color: palette.text }]}>{t('goalPeriod')}</Text>
+        <View style={styles.periodRow}>
+          {[
+            { key: 'weekly', label: t('weekly') },
+            { key: 'monthly', label: t('monthly') },
+            { key: 'yearly', label: t('yearly') }
+          ].map((item) => (
+            <Pressable
+              key={item.key}
+              onPress={() => setPeriod(item.key)}
+              style={[
+                styles.periodChip,
+                { borderColor: palette.border, backgroundColor: palette.surface },
+                period === item.key && { borderColor: palette.primary }
+              ]}
+            >
+              <Text style={{ color: period === item.key ? palette.primary : palette.subText, fontWeight: '700' }}>
+                {item.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
         <Pressable onPress={onAdd} style={[styles.primaryButton, { backgroundColor: palette.primary }]}>
           <Text style={styles.primaryButtonText}>{t('createGoal')}</Text>
         </Pressable>
@@ -116,6 +140,21 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#fff',
     fontWeight: '800'
+  },
+  periodTitle: {
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  periodRow: {
+    flexDirection: 'row',
+    gap: 8
+  },
+  periodChip: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: 'center',
+    paddingVertical: 9
   },
   list: {
     gap: 10

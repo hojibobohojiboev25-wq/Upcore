@@ -17,6 +17,9 @@ const GoalItem = ({ item, onMinus, onPlus, onDelete, palette, t }) => {
       <Text style={[styles.progress, { color: palette.subText }]}>
         {item.current}/{item.target} ({percent}%)
       </Text>
+      <Text style={[styles.progress, { color: palette.subText }]}>
+        {t('goalPeriod')}: {t(item.period || 'monthly')}
+      </Text>
       <ProgressBar
         value={item.current}
         max={item.target}
