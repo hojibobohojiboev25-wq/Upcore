@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform
+} from 'react-native';
 import { useSuccess } from '../context/SuccessContext';
 import GoalItem from '../components/GoalItem';
 
 const GoalsScreen = () => {
-  const { goals, addGoal, updateGoal, removeGoal, palette, t } = useSuccess();
+  const { goals, addGoal, updateGoal, removeGoal, settings, palette, t } = useSuccess();
   const [title, setTitle] = useState('');
   const [target, setTarget] = useState('10');
 
@@ -16,7 +25,15 @@ const GoalsScreen = () => {
   };
 
   return (
-    <ScrollView style={[styles.screen, { backgroundColor: palette.background }]} contentContainerStyle={styles.container}>
+    <KeyboardAvoidingView
+      style={[styles.screen, { backgroundColor: palette.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        style={[styles.screen, { backgroundColor: palette.background }]}
+        contentContainerStyle={[styles.container, settings.compactMode && styles.compactContainer]}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={[styles.form, { backgroundColor: palette.card, borderColor: palette.border }]}>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>{t('newGoal')}</Text>
         <TextInput
@@ -56,7 +73,8 @@ const GoalsScreen = () => {
           ))
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -69,6 +87,10 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 14,
     paddingBottom: 40
+  },
+  compactContainer: {
+    padding: 12,
+    gap: 10
   },
   sectionTitle: {
     fontWeight: '800',

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = 'success_tracker_pro_data_v1';
+const STORAGE_KEY = 'upcore_data_v2';
 
 export const loadState = async () => {
   try {

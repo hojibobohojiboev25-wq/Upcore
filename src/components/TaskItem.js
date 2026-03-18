@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { formatDate } from '../utils/date';
+import { formatDate, formatTime } from '../utils/date';
 
 const priorityMap = {
-  low: { label: 'Низкий', color: '#2A9D8F' },
-  medium: { label: 'Средний', color: '#FFB020' },
-  high: { label: 'Высокий', color: '#FF5C5C' }
+  low: { key: 'low', color: '#2A9D8F' },
+  medium: { key: 'medium', color: '#FFB020' },
+  high: { key: 'high', color: '#FF5C5C' }
 };
 
-const TaskItem = ({ item, onToggle, onDelete, palette, t }) => {
+const TaskItem = ({ item, onToggle, onDelete, palette, t, use24Hour = true }) => {
   const priority = priorityMap[item.priority] || priorityMap.medium;
   return (
     <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.border }]}>
@@ -31,13 +31,13 @@ const TaskItem = ({ item, onToggle, onDelete, palette, t }) => {
           {!!item.note && <Text style={[styles.note, { color: palette.subText }]}>{item.note}</Text>}
           {!!item.dueAt && (
             <Text style={[styles.note, { color: palette.warning }]}>
-              {t('dueDate')}: {formatDate(item.dueAt)} {new Date(item.dueAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {t('dueDate')}: {formatDate(item.dueAt)} {formatTime(item.dueAt, use24Hour)}
             </Text>
           )}
           <View style={styles.metaRow}>
-            <Text style={[styles.priority, { color: priority.color }]}>{priority.label}</Text>
+            <Text style={[styles.priority, { color: priority.color }]}>{t(priority.key)}</Text>
             <Text style={[styles.date, { color: palette.subText }]}>
-              {formatDate(item.createdAt)}
+              {t('createdAt')}: {formatDate(item.createdAt)}
             </Text>
           </View>
         </View>
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 7,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: '#253453',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2

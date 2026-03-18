@@ -5,7 +5,7 @@ import StatCard from '../components/StatCard';
 import ProgressBar from '../components/ProgressBar';
 
 const DashboardScreen = () => {
-  const { metrics, goals, setDailyTaskTarget, palette, t } = useSuccess();
+  const { metrics, goals, setDailyTaskTarget, settings, palette, t } = useSuccess();
   const [targetDraft, setTargetDraft] = useState(String(metrics.dailyTaskTarget));
   useEffect(() => {
     setTargetDraft(String(metrics.dailyTaskTarget));
@@ -17,18 +17,21 @@ const DashboardScreen = () => {
     : 0;
 
   return (
-    <ScrollView style={[styles.screen, { backgroundColor: palette.background }]} contentContainerStyle={styles.container}>
+    <ScrollView
+      style={[styles.screen, { backgroundColor: palette.background }]}
+      contentContainerStyle={[styles.container, settings.compactMode && styles.compactContainer]}
+    >
       <Text style={[styles.title, { color: palette.text }]}>{t('appName')}</Text>
       <Text style={[styles.subtitle, { color: palette.subText }]}>{t('appSubtitle')}</Text>
 
       <View style={styles.cardRow}>
-        <StatCard title={t('streak')} value={`${metrics.streak}`} subtitle="days" palette={palette} />
-        <StatCard title={t('completedTasks')} value={`${metrics.completionRate}%`} subtitle="rate" palette={palette} />
+        <StatCard title={t('streak')} value={`${metrics.streak}`} subtitle={t('days')} palette={palette} />
+        <StatCard title={t('completedTasks')} value={`${metrics.completionRate}%`} subtitle={t('rate')} palette={palette} />
       </View>
 
       <View style={styles.cardRow}>
-        <StatCard title={t('completedTasks')} value={`${metrics.completedTasks}`} subtitle={`of ${metrics.totalTasks}`} palette={palette} />
-        <StatCard title={t('completedGoals')} value={`${metrics.goalsCompleted}`} subtitle={`of ${goals.length}`} palette={palette} />
+        <StatCard title={t('completedTasks')} value={`${metrics.completedTasks}`} subtitle={`${t('of')} ${metrics.totalTasks}`} palette={palette} />
+        <StatCard title={t('completedGoals')} value={`${metrics.goalsCompleted}`} subtitle={`${t('of')} ${goals.length}`} palette={palette} />
       </View>
 
       <View style={styles.cardRow}>
@@ -42,7 +45,7 @@ const DashboardScreen = () => {
       </View>
 
       <View style={[styles.panel, { backgroundColor: palette.card, borderColor: palette.border }]}>
-        <Text style={[styles.panelTitle, { color: palette.subText }]}>{t('goals')}</Text>
+        <Text style={[styles.panelTitle, { color: palette.subText }]}>{t('goalsProgress')}</Text>
         <Text style={[styles.panelValue, { color: palette.text }]}>{avgGoalCompletion}%</Text>
         <ProgressBar value={avgGoalCompletion} max={100} color={palette.primary} trackColor={palette.border} />
       </View>
@@ -76,20 +79,22 @@ const DashboardScreen = () => {
         </View>
       </View>
 
-      <View style={[styles.panel, { backgroundColor: palette.card, borderColor: palette.border }]}>
-        <Text style={[styles.panelTitle, { color: palette.subText }]}>7 days</Text>
-        <View style={styles.weekRow}>
-          {metrics.last7days.map((item) => {
-            const height = Math.max(6, Math.min(48, item.done * 12));
-            return (
-              <View key={String(item.date)} style={styles.dayCol}>
-                <View style={[styles.bar, { height, backgroundColor: palette.primary }]} />
-                <Text style={[styles.dayText, { color: palette.subText }]}>{item.date.getDate()}</Text>
-              </View>
-            );
-          })}
+      {settings.weeklyInsights ? (
+        <View style={[styles.panel, { backgroundColor: palette.card, borderColor: palette.border }]}>
+          <Text style={[styles.panelTitle, { color: palette.subText }]}>{t('thisWeek')}</Text>
+          <View style={styles.weekRow}>
+            {metrics.last7days.map((item) => {
+              const height = Math.max(6, Math.min(48, item.done * 12));
+              return (
+                <View key={String(item.date)} style={styles.dayCol}>
+                  <View style={[styles.bar, { height, backgroundColor: palette.primary }]} />
+                  <Text style={[styles.dayText, { color: palette.subText }]}>{item.date.getDate()}</Text>
+                </View>
+              );
+            })}
+          </View>
         </View>
-      </View>
+      ) : null}
     </ScrollView>
   );
 };
@@ -103,6 +108,10 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 14,
     paddingBottom: 40
+  },
+  compactContainer: {
+    padding: 12,
+    gap: 10
   },
   title: {
     fontWeight: '800',

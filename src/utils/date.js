@@ -5,6 +5,26 @@ export const formatDate = (value) => {
   ).padStart(2, '0')}.${date.getFullYear()}`;
 };
 
+export const formatTime = (value, use24Hour = true) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '--:--';
+  return date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: !use24Hour
+  });
+};
+
+export const formatDuration = (secondsInput) => {
+  const seconds = Math.max(0, Math.floor(Number(secondsInput) || 0));
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  if (hrs > 0) return `${hrs}h ${mins}m`;
+  if (mins > 0) return `${mins}m ${secs}s`;
+  return `${secs}s`;
+};
+
 export const isSameDay = (a, b) => {
   const d1 = new Date(a);
   const d2 = new Date(b);

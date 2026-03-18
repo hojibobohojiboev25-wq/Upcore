@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useReducer
 } from 'react';
+import * as Haptics from 'expo-haptics';
 import { getPastDays, isSameDay, startOfDay } from '../utils/date';
 import { loadState, saveState } from '../storage/storage';
 import { getPalette } from '../constants/theme';
@@ -33,8 +34,15 @@ const initialState = {
     language: 'ru',
     notificationsEnabled: false,
     dailyTaskTarget: 3,
-    compactMode: false
+    compactMode: false,
+    weeklyInsights: true,
+    hapticsEnabled: true,
+    twentyFourHour: true,
+    reminderMinutes: 20,
+    weekStartsOn: 'monday',
+    defaultPriority: 'medium'
   },
+  trackedApps: [],
   meta: {
     lastActivityAt: null
   }
@@ -51,7 +59,12 @@ const actionTypes = {
   SET_DAILY_TARGET: 'SET_DAILY_TARGET',
   SET_PROFILE: 'SET_PROFILE',
   SET_SETTINGS: 'SET_SETTINGS',
-  SET_TASK_NOTIFICATION: 'SET_TASK_NOTIFICATION'
+  SET_TASK_NOTIFICATION: 'SET_TASK_NOTIFICATION',
+  CLEAR_COMPLETED_TASKS: 'CLEAR_COMPLETED_TASKS',
+  ADD_TRACKED_APP: 'ADD_TRACKED_APP',
+  START_TRACKED_APP: 'START_TRACKED_APP',
+  STOP_TRACKED_APP: 'STOP_TRACKED_APP',
+  REMOVE_TRACKED_APP: 'REMOVE_TRACKED_APP'
 };
 
 const reducer = (state, action) => {
@@ -68,6 +81,7 @@ const reducer = (state, action) => {
           ...state.settings,
           ...(action.payload?.settings || {})
         },
+        trackedApps: action.payload?.trackedApps || [],
         loaded: true
       };
     case actionTypes.ADD_TASK:
@@ -151,6 +165,65 @@ const reducer = (state, action) => {
           ...action.payload
         }
       };
+    case actionTypes.CLEAR_COMPLETED_TASKS:
+      return {
+        ...state,
+        tasks: state.tasks.filter((task) => !task.completed)
+      };
+    case actionTypes.ADD_TRACKED_APP:
+      return {
+        ...state,
+        trackedApps: [action.payload, ...state.trackedApps]
+      };
+    case actionTypes.START_TRACKED_APP:
+      return {
+        ...state,
+        trackedApps: state.trackedApps.map((app) => {
+          if (app.id !== action.payload.id || app.isRunning) return app;
+          return {
+            ...app,
+            isRunning: true,
+            lastStartedAt: action.payload.startedAt,
+            openCount: (app.openCount || 0) + 1
+          };
+        })
+      };
+    case actionTypes.STOP_TRACKED_APP:
+      return {
+        ...state,
+        trackedApps: state.trackedApps.map((app) => {
+          if (app.id !== action.payload.id || !app.isRunning || !app.lastStartedAt) return app;
+          const startedAtMs = new Date(app.lastStartedAt).getTime();
+          const endedAtMs = new Date(action.payload.endedAt).getTime();
+          if (Number.isNaN(startedAtMs) || Number.isNaN(endedAtMs) || endedAtMs <= startedAtMs) {
+            return {
+              ...app,
+              isRunning: false,
+              lastStartedAt: null
+            };
+          }
+          const durationSec = Math.max(1, Math.floor((endedAtMs - startedAtMs) / 1000));
+          return {
+            ...app,
+            isRunning: false,
+            lastStartedAt: null,
+            totalSeconds: (app.totalSeconds || 0) + durationSec,
+            sessions: [
+              ...(app.sessions || []),
+              {
+                startedAt: app.lastStartedAt,
+                endedAt: action.payload.endedAt,
+                durationSec
+              }
+            ]
+          };
+        })
+      };
+    case actionTypes.REMOVE_TRACKED_APP:
+      return {
+        ...state,
+        trackedApps: state.trackedApps.filter((app) => app.id !== action.payload.id)
+      };
     default:
       return state;
   }
@@ -181,6 +254,7 @@ export const SuccessProvider = ({ children }) => {
       tasks: state.tasks,
       goals: state.goals,
       settings: state.settings,
+      trackedApps: state.trackedApps,
       meta: state.meta
     });
   }, [state]);
@@ -267,7 +341,7 @@ export const SuccessProvider = ({ children }) => {
       const notificationId = await scheduleTaskReminder({
         taskTitle: title,
         dueAtISO: dueAt,
-        minutesBefore: 20
+        minutesBefore: state.settings.reminderMinutes
       });
       if (notificationId) {
         dispatch({
@@ -276,7 +350,7 @@ export const SuccessProvider = ({ children }) => {
         });
       }
     },
-    [state.settings.notificationsEnabled]
+    [state.settings.notificationsEnabled, state.settings.reminderMinutes]
   );
 
   const toggleTask = useCallback(
@@ -347,6 +421,76 @@ export const SuccessProvider = ({ children }) => {
     });
   }, []);
 
+  const clearCompletedTasks = useCallback(() => {
+    dispatch({ type: actionTypes.CLEAR_COMPLETED_TASKS });
+  }, []);
+
+  const addTrackedApp = useCallback(
+    ({ name, category }) => {
+      const trimmedName = String(name || '').trim();
+      if (!trimmedName) return false;
+      const exists = state.trackedApps.some(
+        (app) => app.name.toLowerCase() === trimmedName.toLowerCase()
+      );
+      if (exists) return false;
+      dispatch({
+        type: actionTypes.ADD_TRACKED_APP,
+        payload: {
+          id: createId(),
+          name: trimmedName,
+          category: String(category || '').trim() || 'General',
+          totalSeconds: 0,
+          openCount: 0,
+          sessions: [],
+          isRunning: false,
+          lastStartedAt: null,
+          createdAt: new Date().toISOString()
+        }
+      });
+      return true;
+    },
+    [state.trackedApps]
+  );
+
+  const startTrackedApp = useCallback(
+    async (id) => {
+      dispatch({
+        type: actionTypes.START_TRACKED_APP,
+        payload: {
+          id,
+          startedAt: new Date().toISOString()
+        }
+      });
+      if (state.settings.hapticsEnabled) {
+        await Haptics.selectionAsync();
+      }
+    },
+    [state.settings.hapticsEnabled]
+  );
+
+  const stopTrackedApp = useCallback(
+    async (id) => {
+      dispatch({
+        type: actionTypes.STOP_TRACKED_APP,
+        payload: {
+          id,
+          endedAt: new Date().toISOString()
+        }
+      });
+      if (state.settings.hapticsEnabled) {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    },
+    [state.settings.hapticsEnabled]
+  );
+
+  const removeTrackedApp = useCallback((id) => {
+    dispatch({
+      type: actionTypes.REMOVE_TRACKED_APP,
+      payload: { id }
+    });
+  }, []);
+
   const t = useCallback(
     (key) => {
       const lang = state.settings.language || 'ru';
@@ -367,6 +511,7 @@ export const SuccessProvider = ({ children }) => {
       palette,
       t,
       metrics,
+      trackedApps: state.trackedApps,
       addTask,
       toggleTask,
       removeTask,
@@ -375,7 +520,12 @@ export const SuccessProvider = ({ children }) => {
       removeGoal,
       setDailyTaskTarget,
       setProfile,
-      updateSettings
+      updateSettings,
+      clearCompletedTasks,
+      addTrackedApp,
+      startTrackedApp,
+      stopTrackedApp,
+      removeTrackedApp
     }),
     [
       addGoal,
@@ -384,15 +534,21 @@ export const SuccessProvider = ({ children }) => {
       palette,
       removeGoal,
       removeTask,
+      removeTrackedApp,
       setDailyTaskTarget,
       setProfile,
+      startTrackedApp,
       state.goals,
       state.loaded,
       state.profile,
       state.settings,
       state.tasks,
+      state.trackedApps,
+      stopTrackedApp,
       t,
       toggleTask,
+      addTrackedApp,
+      clearCompletedTasks,
       updateGoal,
       updateSettings
     ]

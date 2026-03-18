@@ -4,7 +4,7 @@ import { useSuccess } from '../context/SuccessContext';
 import ProgressBar from '../components/ProgressBar';
 
 const AnalyticsScreen = () => {
-  const { tasks, goals, metrics, palette, t } = useSuccess();
+  const { tasks, goals, metrics, settings, palette, t } = useSuccess();
   const highPriorityDone = tasks.filter((t) => t.priority === 'high' && t.completed).length;
   const totalHighPriority = tasks.filter((t) => t.priority === 'high').length;
   const goalsOverall = goals.length
@@ -13,29 +13,32 @@ const AnalyticsScreen = () => {
 
   const achievements = [
     {
-      title: 'Первые шаги',
+      title: t('firstSteps'),
       reached: metrics.completedTasks >= 1,
-      desc: 'Завершена хотя бы 1 задача'
+      desc: t('firstStepsDesc')
     },
     {
-      title: 'Стабильность',
+      title: t('stability'),
       reached: metrics.streak >= 3,
-      desc: 'Серия 3+ дня подряд'
+      desc: t('stabilityDesc')
     },
     {
-      title: 'Фокус на важном',
+      title: t('focus'),
       reached: highPriorityDone >= 5,
-      desc: '5 выполненных задач с высоким приоритетом'
+      desc: t('focusDesc')
     },
     {
-      title: 'Мастер целей',
+      title: t('goalsMaster'),
       reached: metrics.goalsCompleted >= 1,
-      desc: 'Закрыта хотя бы 1 цель'
+      desc: t('goalsMasterDesc')
     }
   ];
 
   return (
-    <ScrollView style={[styles.screen, { backgroundColor: palette.background }]} contentContainerStyle={styles.container}>
+    <ScrollView
+      style={[styles.screen, { backgroundColor: palette.background }]}
+      contentContainerStyle={[styles.container, settings.compactMode && styles.compactContainer]}
+    >
       <View style={[styles.panel, { backgroundColor: palette.card, borderColor: palette.border }]}>
         <Text style={[styles.panelTitle, { color: palette.text }]}>{t('kpi')}</Text>
 
@@ -79,7 +82,7 @@ const AnalyticsScreen = () => {
               ]}
             >
               <Text style={[styles.achievementTitle, { color: palette.text }]}>
-                {achievement.reached ? '🏅' : '🔒'} {achievement.title}
+                {achievement.title}
               </Text>
               <Text style={[styles.achievementDesc, { color: palette.subText }]}>{achievement.desc}</Text>
             </View>
@@ -99,6 +102,10 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 14,
     paddingBottom: 40
+  },
+  compactContainer: {
+    padding: 12,
+    gap: 10
   },
   panel: {
     borderWidth: 1,

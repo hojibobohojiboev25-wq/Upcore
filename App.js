@@ -1,5 +1,5 @@
 import 'react-native-gesture-handler';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -16,6 +16,9 @@ import AnalyticsScreen from './src/screens/AnalyticsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen';
+import IntroSplashScreen from './src/screens/IntroSplashScreen';
+import AppsScreen from './src/screens/AppsScreen';
+import AppAnalyticsDetailScreen from './src/screens/AppAnalyticsDetailScreen';
 import { useSuccess } from './src/context/SuccessContext';
 
 const Tab = createBottomTabNavigator();
@@ -74,6 +77,7 @@ const MainTabs = () => {
 
 const AppContent = () => {
   const { loaded, profile, palette, t } = useSuccess();
+  const [introDone, setIntroDone] = useState(false);
 
   useEffect(() => {
     const hideSystemUi = async () => {
@@ -92,6 +96,10 @@ const AppContent = () => {
         <ActivityIndicator color={palette.primary} />
       </View>
     );
+  }
+
+  if (!introDone) {
+    return <IntroSplashScreen onDone={() => setIntroDone(true)} />;
   }
 
   if (!profile?.ready) {
@@ -116,10 +124,28 @@ const AppContent = () => {
             headerTintColor: palette.text
           }}
         />
+        <Stack.Screen
+          name="Apps"
+          component={AppsScreen}
+          options={{
+            title: t('myApps'),
+            headerStyle: { backgroundColor: palette.background },
+            headerTintColor: palette.text
+          }}
+        />
+        <Stack.Screen
+          name="AppAnalyticsDetail"
+          component={AppAnalyticsDetailScreen}
+          options={{
+            title: t('appAnalytics'),
+            headerStyle: { backgroundColor: palette.background },
+            headerTintColor: palette.text
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
-}
+};
 
 export default function App() {
   return (

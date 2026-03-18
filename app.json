@@ -2,11 +2,11 @@
   "expo": {
     "name": "Upcore",
     "slug": "upcore",
-    "version": "8.2.0",
+    "version": "8.3.0",
     "orientation": "portrait",
     "icon": "./assets/upcore-icon.png",
     "userInterfaceStyle": "light",
-    "scheme": "successtrackerpro",
+    "scheme": "upcore",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -24,14 +24,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.orzuit.upcore",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.orzuit.upcore",
-      "versionCode": 10,
+      "versionCode": 11,
       "adaptiveIcon": {
         "foregroundImage": "./assets/upcore-icon.png",
         "backgroundColor": "#101828"
@@ -42,8 +42,12 @@
     },
     "extra": {
       "eas": {
-        "projectId": "3758dcd5-f463-4040-b103-a6d2ef218793"
+        "projectId": "243e899e-dc8e-411a-a7a4-0d609fbf7f7a"
       }
-    }
+    },
+    "owner": "hoji_elite",
+    "plugins": [
+      "@react-native-community/datetimepicker"
+    ]
   }
 }

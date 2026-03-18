@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform
+} from 'react-native';
 import { useSuccess } from '../context/SuccessContext';
 import StatCard from '../components/StatCard';
 
@@ -9,9 +18,17 @@ const ProfileScreen = () => {
   const [mission, setMission] = useState(profile.mission || '');
 
   return (
-    <ScrollView style={[styles.screen, { backgroundColor: palette.background }]} contentContainerStyle={styles.container}>
+    <KeyboardAvoidingView
+      style={[styles.screen, { backgroundColor: palette.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        style={[styles.screen, { backgroundColor: palette.background }]}
+        contentContainerStyle={[styles.container, settings.compactMode && styles.compactContainer]}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={[styles.profileCard, { backgroundColor: palette.card, borderColor: palette.border }]}>
-        <Text style={[styles.name, { color: palette.text }]}>{profile.name || 'User'}</Text>
+        <Text style={[styles.name, { color: palette.text }]}>{profile.name || t('profile')}</Text>
         <Text style={[styles.mission, { color: palette.subText }]}>
           {profile.mission || t('profileGreeting')}
         </Text>
@@ -42,7 +59,7 @@ const ProfileScreen = () => {
           style={[styles.primaryBtn, { backgroundColor: palette.primary }]}
           onPress={() => setProfile({ name: name.trim() || profile.name, mission: mission.trim() })}
         >
-          <Text style={styles.primaryBtnText}>{t('save')}</Text>
+          <Text style={styles.primaryBtnText}>{t('saveChanges')}</Text>
         </Pressable>
       </View>
 
@@ -58,13 +75,15 @@ const ProfileScreen = () => {
           </Text>
         </Pressable>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   container: { padding: 16, gap: 14, paddingBottom: 40 },
+  compactContainer: { padding: 12, gap: 10 },
   profileCard: {
     borderWidth: 1,
     borderRadius: 16,

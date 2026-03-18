@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import {
-  View,
+  KeyboardAvoidingView,
   Text,
   StyleSheet,
   TextInput,
   Pressable,
-  Image,
+  ScrollView,
+  View,
+  Platform,
   useWindowDimensions
 } from 'react-native';
 import { useSuccess } from '../context/SuccessContext';
@@ -15,52 +17,64 @@ const WelcomeScreen = () => {
   const { width } = useWindowDimensions();
   const [name, setName] = useState('');
   const [mission, setMission] = useState('');
-  const iconSize = Math.min(120, Math.max(84, width * 0.22));
+  const titleSize = Math.min(40, Math.max(34, width * 0.095));
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.background }]}>
-      <View style={styles.topArea}>
-        <Image source={require('../../assets/upcore-icon.png')} style={{ width: iconSize, height: iconSize, borderRadius: 24 }} />
-        <Text style={[styles.title, { color: palette.text }]}>{t('appName')}</Text>
-        <Text style={[styles.subtitle, { color: palette.subText }]}>{t('createProfile')}</Text>
-      </View>
+    <KeyboardAvoidingView
+      style={[styles.screen, { backgroundColor: palette.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.topArea}>
+          <Text style={[styles.title, { color: palette.text, fontSize: titleSize }]}>{t('appName')}</Text>
+          <Text style={[styles.subtitle, { color: palette.subText }]}>{t('createProfile')}</Text>
+          <Text style={[styles.hint, { color: palette.subText }]}>{t('welcomeHint')}</Text>
+        </View>
 
-      <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.border }]}>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder={t('yourName')}
-          placeholderTextColor={palette.subText}
-          style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
-        />
-        <TextInput
-          value={mission}
-          onChangeText={setMission}
-          placeholder={t('yourGoal')}
-          placeholderTextColor={palette.subText}
-          style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
-        />
-        <Pressable
-          style={[styles.button, { backgroundColor: palette.primary }]}
-          onPress={() => {
-            if (!name.trim()) return;
-            setProfile({ name: name.trim(), mission: mission.trim(), createdAt: new Date().toISOString() });
-          }}
-        >
-          <Text style={styles.buttonText}>{t('continue')}</Text>
-        </Pressable>
-      </View>
+        <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.border }]}>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder={t('yourName')}
+            placeholderTextColor={palette.subText}
+            style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
+          />
+          <TextInput
+            value={mission}
+            onChangeText={setMission}
+            placeholder={t('yourGoal')}
+            placeholderTextColor={palette.subText}
+            style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
+          />
+          <Pressable
+            style={[styles.button, { backgroundColor: palette.primary }]}
+            onPress={() => {
+              if (!name.trim()) return;
+              setProfile({ name: name.trim(), mission: mission.trim(), createdAt: new Date().toISOString() });
+            }}
+          >
+            <Text style={styles.buttonText}>{t('continue')}</Text>
+          </Pressable>
+          <Text style={[styles.keyboardHint, { color: palette.subText }]}>{t('keyboardFixedHint')}</Text>
+        </View>
 
-      <View style={styles.bottomArea}>
-        <Text style={[styles.from, { color: palette.subText }]}>{t('fromOrzu')}</Text>
-      </View>
-    </View>
+        <View style={styles.bottomArea}>
+          <Text style={[styles.from, { color: palette.subText }]}>{t('fromOrzu')}</Text>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   screen: {
-    flex: 1,
+    flex: 1
+  },
+  scrollContainer: {
+    minHeight: '100%',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 70,
@@ -68,14 +82,18 @@ const styles = StyleSheet.create({
   },
   topArea: {
     alignItems: 'center',
-    gap: 12
+    gap: 10
   },
   title: {
-    fontSize: 36,
+    marginTop: 8,
     fontWeight: '900'
   },
   subtitle: {
-    fontSize: 16
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  hint: {
+    fontSize: 13
   },
   card: {
     borderWidth: 1,
@@ -97,6 +115,9 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: '800'
+  },
+  keyboardHint: {
+    fontSize: 12
   },
   bottomArea: {
     alignItems: 'center'
